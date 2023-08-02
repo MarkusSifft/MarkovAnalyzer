@@ -32,6 +32,8 @@
 ###############################################################################
 
 import random
+
+import matplotlib.pyplot as plt
 import numpy as np
 from lmfit import minimize
 from numba import njit, objmode, prange
@@ -250,22 +252,13 @@ def params_to_gamma_array(t, params):
     return gamma_array
 
 
-def objective_function(params, state_array):
-    # print(params)
-
-    p_test = system_to_probability_array(params, state_array)
-
-    print('---------p_test:', p_test)
-
-    return p_test
-
-
 class DiscreteHaugSystem:
     def __init__(self, dataset, initial_state, lower_bound, upper_bound):
         self.dataset = dataset
         self.initial_state = initial_state
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
+        self.all_p = []
 
     def fit_system(self, with_bounds=False):
         bounds = Bounds(self.lower_bound, self.upper_bound)
@@ -273,13 +266,26 @@ class DiscreteHaugSystem:
         assert int(self.initial_state.shape[0] / 3 / 2) == int(self.dataset[:, 0].max())
 
         if with_bounds:
-            result = minimize(objective_function, self.initial_state, args=self.dataset, method = 'L-BFGS-B', bounds = bounds)
+            result = minimize(self.objective_function, self.initial_state, args=self.dataset, method='L-BFGS-B',
+                              bounds=bounds, callback=self.callback_function)
         else:
-            result = minimize(objective_function, self.initial_state, args=self.dataset)
+            result = minimize(self.objective_function, self.initial_state, args=self.dataset,
+                              callback=self.callback_function)
 
         return result
 
     def simulate_path(self, n_steps, state_0, means, params, delta_t):
         probability, simulation  = simulation_path_prob(n_steps, state_0, means, params, delta_t)
         return probability, simulation
+
+    def objective_function(self, params, state_array):
+        p_test = system_to_probability_array(params, state_array)
+        self.all_p.append(p_test)  # append current p_test to all_p list
+        return p_test
+
+    def callback_function(self, params):
+        plt.plot(self.all_p)  # plot all_p list
+        plt.show(block=False)
+        plt.pause(0.01)  # pause a bit for the plot to update
+
 
