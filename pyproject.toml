@@ -1,0 +1,38 @@
+[build-system]
+requires = [
+    "hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "signalsnap"
+version = "0.1.13"
+authors = [
+{ name="Markus Sifft", email="markus.sifft@rub.de" },
+]
+description = "Spectra at your fingertips"
+readme = "README.md"
+requires-python = "<3.12"
+classifiers = [
+ "Development Status :: 2 - Pre-Alpha",
+ "Intended Audience :: Science/Research",
+ "License :: OSI Approved :: BSD License",
+ "Programming Language :: Python",
+ "Programming Language :: Python :: 3",
+ "Topic :: Scientific/Engineering",
+ "Operating System :: OS Independent",
+]
+dependencies = [
+ "numpy",
+ "matplotlib",
+ "h5py",
+ "arrayfire",
+ "numba",
+ "scipy",
+ "tqdm",
+ "plotly"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/MarkusSifft/SignalSnap"
+"Bug Tracker" = "https://github.com/MarkusSifft/SignalSnap/issues"
+
