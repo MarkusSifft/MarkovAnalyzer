@@ -1,5 +1,5 @@
 # MarkovAnalyzer: Analysis of Markov In Python Made Easy 
-by M. Sifft
+by M. Sifft 
 
 We present a fast Python toolbox for...
 
