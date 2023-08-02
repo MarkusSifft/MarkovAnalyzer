@@ -285,6 +285,7 @@ class DiscreteHaugSystem:
         return p_test
 
     def callback_function(self, params):
+        print(1)
         plt.plot(self.all_p)  # plot all_p list
         plt.show(block=False)
         plt.pause(0.01)  # pause a bit for the plot to update
