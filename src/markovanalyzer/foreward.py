@@ -268,9 +268,9 @@ class DiscreteHaugSystem:
         assert int(self.initial_state.shape[0] / 3 / 2) == int(self.dataset[:, 0].max())
 
         if with_bounds:
-            result = minimize(self.objective_function, self.initial_state, args=self.dataset, method = 'L-BFGS-B', bounds = bounds, callback=self.callback)
+            result = minimize(self.objective_function, self.initial_state, args=self.dataset, method = 'L-BFGS-B', bounds = bounds)
         else:
-            result = minimize(self.objective_function, self.initial_state, args=self.dataset, callback=self.callback)
+            result = minimize(self.objective_function, self.initial_state, args=self.dataset)
 
         plt.show()  # show the final plot
         return result
@@ -281,16 +281,13 @@ class DiscreteHaugSystem:
 
     def objective_function(self, params, state_array):
         p_test = system_to_probability_array(params, state_array)
-        print(p_test)
         self.all_p.append(p_test)  # store all p_test values
-        return p_test
-
-    def callback(self, params):
-        print('in callback')
+        # update the plot
         self.line.set_ydata(self.all_p)  # update the y-data of the plot
         self.line.set_xdata(range(len(self.all_p)))  # update the x-data of the plot
         self.ax.set_xlim([0, len(self.all_p)])  # set the x-limits to match the number of iterations
         plt.draw()  # update the plot
         plt.pause(0.01)  # pause for a while
+        return p_test
 
 
