@@ -280,6 +280,7 @@ class DiscreteHaugSystem:
 
     def objective_function(self, params, state_array):
         p_test = system_to_probability_array(params, state_array)
+        print(p_test)
         self.all_p.append(p_test)  # append current p_test to all_p list
         return p_test
 
