@@ -258,9 +258,10 @@ class DiscreteHaugSystem:
         self.upper_bound = upper_bound
         self.all_p = []
         # Initialize matplotlib plot
+        plt.ion()  # Turn on interactive mode
         self.fig, self.ax = plt.subplots()
-        self.line, = self.ax.plot(self.all_p)
-        self.ax.set_ylim([0, 1])  # assuming p_test is in range [0, 1]
+        self.line, = self.ax.plot([])  # Start with empty plot
+        self.ax.set_ylim([0, 1])  # Assuming p_test is in range [0, 1]
 
     def fit_system(self, with_bounds=False):
         bounds = Bounds(self.lower_bound, self.upper_bound)
@@ -272,7 +273,8 @@ class DiscreteHaugSystem:
         else:
             result = minimize(self.objective_function, self.initial_state, args=self.dataset)
 
-        plt.show()  # show the final plot
+        plt.ioff()  # Turn off interactive mode
+        plt.show()  # Show the final plot
         return result
 
     def simulate_path(self, n_steps, state_0, means, params, delta_t):
@@ -281,13 +283,13 @@ class DiscreteHaugSystem:
 
     def objective_function(self, params, state_array):
         p_test = system_to_probability_array(params, state_array)
-        self.all_p.append(p_test)  # store all p_test values
-        # update the plot
-        self.line.set_ydata(self.all_p)  # update the y-data of the plot
-        self.line.set_xdata(range(len(self.all_p)))  # update the x-data of the plot
-        self.ax.set_xlim([0, len(self.all_p)])  # set the x-limits to match the number of iterations
-        plt.draw()  # update the plot
-        plt.pause(0.01)  # pause for a while
+        self.all_p.append(p_test)  # Store all p_test values
+        # Update the plot
+        self.line.set_ydata(self.all_p)  # Update the y-data of the plot
+        self.line.set_xdata(range(len(self.all_p)))  # Update the x-data of the plot
+        self.ax.relim()  # Recompute the data limits based on the actual data
+        self.ax.autoscale_view()  # Rescale the view
+        self.fig.canvas.draw()  # Redraw the current figure
+        self.fig.canvas.flush_events()  # Process events
         return p_test
-
 
