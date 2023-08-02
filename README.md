@@ -1,7 +1,7 @@
 # MarkovAnalyzer: Analysis of Markov In Python Made Easy 
 by M. Sifft 
 
-We present a fast Python toolbox for...
+We present a fast Python toolbox for analysing Markov Systems using the Foreward algorithm or a polyspectra fit
 
 Here, a few outstanding features of MarkovAnalyzer:
 * 
