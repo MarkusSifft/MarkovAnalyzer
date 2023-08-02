@@ -32,7 +32,6 @@
 ###############################################################################
 
 import random
-
 import matplotlib.pyplot as plt
 import numpy as np
 from numba import njit, objmode, prange
@@ -282,10 +281,12 @@ class DiscreteHaugSystem:
 
     def objective_function(self, params, state_array):
         p_test = system_to_probability_array(params, state_array)
+        print(p_test)
         self.all_p.append(p_test)  # store all p_test values
         return p_test
 
     def callback(self, params):
+        print('in callback')
         self.line.set_ydata(self.all_p)  # update the y-data of the plot
         self.line.set_xdata(range(len(self.all_p)))  # update the x-data of the plot
         self.ax.set_xlim([0, len(self.all_p)])  # set the x-limits to match the number of iterations
