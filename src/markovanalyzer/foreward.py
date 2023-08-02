@@ -37,8 +37,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from lmfit import minimize
 from numba import njit, objmode, prange
-#from scipy.optimize import Bounds
-#from scipy.optimize import minimize
 from scipy.sparse.linalg import expm
 
 
@@ -261,16 +259,10 @@ class DiscreteHaugSystem:
         self.all_p = []
 
     def fit_system(self, with_bounds=False):
-        bounds = Bounds(self.lower_bound, self.upper_bound)
 
         assert int(self.initial_state.shape[0] / 3 / 2) == int(self.dataset[:, 0].max())
-
-        if with_bounds:
-            result = minimize(self.objective_function, self.initial_state, args=self.dataset, method='L-BFGS-B',
-                              bounds=bounds, callback=self.callback_function)
-        else:
-            result = minimize(self.objective_function, self.initial_state, args=self.dataset,
-                              callback=self.callback_function)
+        result = minimize(self.objective_function, self.initial_state, args=self.dataset,
+                          callback=self.callback_function)
 
         return result
 
