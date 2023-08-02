@@ -279,3 +279,7 @@ class DiscreteHaugSystem:
 
         return result
 
+    def simulate_path(self, n_steps, state_0, means, params, delta_t):
+        probability, simulation  = simulation_path_prob(n_steps, state_0, means, params, delta_t)
+        return probability, simulation
+
