@@ -37,8 +37,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from lmfit import minimize
 from numba import njit, objmode, prange
-from scipy.optimize import Bounds
-from scipy.optimize import minimize
+#from scipy.optimize import Bounds
+#from scipy.optimize import minimize
 from scipy.sparse.linalg import expm
 
 
