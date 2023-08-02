@@ -35,8 +35,9 @@ import random
 
 import matplotlib.pyplot as plt
 import numpy as np
-from lmfit import minimize
 from numba import njit, objmode, prange
+from scipy.optimize import Bounds
+from scipy.optimize import minimize
 from scipy.sparse.linalg import expm
 
 
@@ -257,13 +258,22 @@ class DiscreteHaugSystem:
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
         self.all_p = []
+        # Initialize matplotlib plot
+        self.fig, self.ax = plt.subplots()
+        self.line, = self.ax.plot(self.all_p)
+        self.ax.set_ylim([0, 1])  # assuming p_test is in range [0, 1]
 
     def fit_system(self, with_bounds=False):
+        bounds = Bounds(self.lower_bound, self.upper_bound)
 
         assert int(self.initial_state.shape[0] / 3 / 2) == int(self.dataset[:, 0].max())
-        result = minimize(self.objective_function, self.initial_state, args=self.dataset,
-                          callback=self.callback_function)
 
+        if with_bounds:
+            result = minimize(self.objective_function, self.initial_state, args=self.dataset, method = 'L-BFGS-B', bounds = bounds, callback=self.callback)
+        else:
+            result = minimize(self.objective_function, self.initial_state, args=self.dataset, callback=self.callback)
+
+        plt.show()  # show the final plot
         return result
 
     def simulate_path(self, n_steps, state_0, means, params, delta_t):
@@ -272,14 +282,14 @@ class DiscreteHaugSystem:
 
     def objective_function(self, params, state_array):
         p_test = system_to_probability_array(params, state_array)
-        print(p_test)
-        self.all_p.append(p_test)  # append current p_test to all_p list
+        self.all_p.append(p_test)  # store all p_test values
         return p_test
 
-    def callback_function(self, params):
-        print(1)
-        plt.plot(self.all_p)  # plot all_p list
-        plt.show(block=False)
-        plt.pause(0.01)  # pause a bit for the plot to update
+    def callback(self, params):
+        self.line.set_ydata(self.all_p)  # update the y-data of the plot
+        self.line.set_xdata(range(len(self.all_p)))  # update the x-data of the plot
+        self.ax.set_xlim([0, len(self.all_p)])  # set the x-limits to match the number of iterations
+        plt.draw()  # update the plot
+        plt.pause(0.01)  # pause for a while
 
 
