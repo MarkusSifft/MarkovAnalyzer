@@ -47,6 +47,7 @@ import pickle
 
 import arrayfire as af
 from arrayfire.interop import from_ndarray as to_gpu
+
 #  from pympler import asizeof
 
 # ------ setup caches for a speed up when summing over all permutations -------
@@ -56,7 +57,6 @@ cache_second_matrix_step = LRUCache(maxsize=int(10e3))
 cache_third_matrix_step = LRUCache(maxsize=int(10e3))
 cache_second_term = LRUCache(maxsize=int(20e5))
 cache_third_term = LRUCache(maxsize=int(20e5))
-
 
 # ------ new cache_fourier_g_prim implementation -------
 # Initial maxsize
@@ -845,7 +845,7 @@ def rates_to_matrix(rates):
     for i in range(n):
         matrix[i, i] = -sum(matrix[i])
 
-    return matrix
+    return matrix.T
 
 
 # Example usage
@@ -1039,7 +1039,6 @@ class System:  # (SpectrumCalculator):
 
         self.zero_ind = np.argmax(np.real(self.eigvals))
 
-        self.zero_ind = np.argmax(np.real(self.eigvals))
         rho_steady = self.eigvecs[:, self.zero_ind]
         rho_steady = rho_steady / np.sum(rho_steady)
 
@@ -1054,7 +1053,6 @@ class System:  # (SpectrumCalculator):
             rho_steady = self.rho_steady.to_ndarray()
         else:
             rho_steady = self.rho_steady
-
 
         self.A_prim = np.diag(measurement_op) - np.eye(n_states) * np.sum((measurement_op @ rho_steady))
 
