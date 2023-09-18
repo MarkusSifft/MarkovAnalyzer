@@ -269,7 +269,7 @@ class DiscreteHaugSystem:
         assert int(self.initial_state.shape[0] / 3 / 2) == int(self.dataset[:, 0].max())
 
         if with_bounds:
-            result = minimize(self.objective_function, self.initial_state, args=self.dataset, method = 'L-BFGS-B', bounds = bounds)
+            result = minimize(self.objective_function, self.initial_state, args=self.dataset, method = 'transition_matrix-BFGS-B', bounds = bounds)
         else:
             result = minimize(self.objective_function, self.initial_state, args=self.dataset)
 
