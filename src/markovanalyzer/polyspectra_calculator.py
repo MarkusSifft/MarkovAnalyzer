@@ -1031,8 +1031,12 @@ class System:  # (SpectrumCalculator):
 
         n_states = self.transtion_matrix.shape[0]
         self.eigvals, self.eigvecs = eig(self.transtion_matrix)
-
         self.eigvecs_inv = inv(self.eigvecs)
+
+        self.eigvals = self.eigvals.astype(dtype=np.complex128)
+        self.eigvecs = self.eigvecs.astype(dtype=np.complex128)
+        self.eigvecs_inv = self.eigvecs_inv.astype(dtype=np.complex128)
+
         self.zero_ind = np.argmax(np.real(self.eigvals))
 
         self.zero_ind = np.argmax(np.real(self.eigvals))
