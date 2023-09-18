@@ -1037,7 +1037,7 @@ class System:  # (SpectrumCalculator):
 
         self.zero_ind = np.argmax(np.real(self.eigvals))
         rho_steady = self.eigvecs[:, self.zero_ind]
-        rho_steady = rho_steady / np.trace(rho_steady)
+        rho_steady = rho_steady / np.sum(rho_steady)
 
         self.rho_steady = rho_steady
 
