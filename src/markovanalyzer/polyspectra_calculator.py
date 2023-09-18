@@ -781,6 +781,83 @@ def pickle_save(path, obj):
     f.close()
 
 
+import numpy as np
+
+
+def rates_to_matrix(rates):
+    """
+    Convert a dictionary of rates to a continuous-time Markov process transition rate matrix.
+
+    Parameters
+    ----------
+    rates : dict
+        Dictionary containing the rates for each transition. Keys should be in the format
+        'from_state->to_state' and values should be non-negative floats representing the rates.
+
+    Returns
+    -------
+    np.ndarray
+        A NumPy array representing the transition rate matrix.
+
+    Raises
+    ------
+    ValueError
+        If the keys in the dictionary are not in the 'from_state->to_state' format or if rates are negative.
+
+    Example
+    -------
+    >>> rates = {"1->2": 0.5, "2->1": 0.7, "2->3": 0.2}
+    >>> rates_to_matrix(rates)
+    array([[-0.5,  0.5,  0. ],
+           [ 0.7, -0.9,  0.2],
+           [ 0. ,  0. ,  0. ]])
+    """
+
+    # Validate input and identify unique states
+    states = set()
+    for key, rate in rates.items():
+        try:
+            from_state, to_state = key.split("->")
+            rate = float(rate)
+        except ValueError:
+            raise ValueError(
+                "Invalid key or rate value. Keys should be 'from_state->to_state' and rates should be non-negative numbers.")
+
+        if rate < 0:
+            raise ValueError("Rates should be non-negative numbers.")
+
+        states.add(from_state)
+        states.add(to_state)
+
+    states = sorted(list(states))
+    n = len(states)
+
+    # Initialize a zero matrix
+    matrix = np.zeros((n, n))
+
+    # Fill the transition rates
+    for key, rate in rates.items():
+        from_state, to_state = key.split("->")
+        i, j = states.index(from_state), states.index(to_state)
+        matrix[i, j] = rate
+
+    # Fill the diagonal elements such that each row sums to zero
+    for i in range(n):
+        matrix[i, i] = -sum(matrix[i])
+
+    return matrix
+
+
+# Example usage
+try:
+    Rates = {"3->1": 0.6, "2->3": 1.4}
+    matrix = rates_to_matrix(Rates)
+    print("Transition Rate Matrix:")
+    print(matrix)
+except ValueError as e:
+    print(e)
+
+
 class System:  # (SpectrumCalculator):
     """
     Class that will represent the system of interest. It contains the parameters of the system and the
@@ -788,49 +865,9 @@ class System:  # (SpectrumCalculator):
 
     Parameters
     ----------
-    h : Qobj
-        Hamiltonian of the system.
-    psi_0 : Qobj
-        Initial state of the system for the integration of the SME.
-    c_ops : dict
-        Dictionary containing the collaps operators (as Qobj) with arbitrary str as keys.
-    sc_ops : dict
-        Dictionary containing the stochastic collaps operators (as Qobj) with arbitrary str as keys.
-    e_ops : dict
-        Dictionary containing the operators (as Qobj) used for the calculation of the
-        expectation values with arbitrary str as keys.
-    c_measure_strength : dict
-        Dictionary containing the prefactor (float) of the collaps operators. Should have the same
-        keys as the corresponding collaps operators in c_ops.
-    sc_measure_strength : dict
-        Dictionary containing the prefactor (float) of the stochastic collaps operators. Should have the same
-        keys as the corresponding collaps operators in sc_ops.
 
     Attributes
     ----------
-    H : array
-        Hamiltonian of the system
-    L : array
-        Liouvillian of the system
-    psi_0: array
-        Start state for the integration of the stochastic master equation
-    c_ops : dict
-        Dictionary containing the collaps operators (as Qobj) with arbitrary str as keys.
-    sc_ops : dict
-        Dictionary containing the stochastic collaps operators (as Qobj) with arbitrary str as keys.
-    e_ops : dict
-        Dictionary containing the operators (as Qobj) used for the calculation of the
-        expectation values with arbitrary str as keys.
-    c_measure_strength : dict
-        Dictionary containing the prefactor (float) of the collaps operators. Should have the same
-        keys as the corresponding collaps operators in c_ops.
-    sc_measure_strength : dict
-        Dictionary containing the prefactor (float) of the stochastic collaps operators. Should have the same
-        keys as the corresponding collaps operators in sc_ops.
-    time_series_data_empty : dataframe
-        Empty version of the simulation results dataframe to reset any results.
-    time_series_data : dataframe
-        Stores expectation values after the integration of the SME
     freq : dict
         Stores the frequencies from the analytic spectra, order 2 to 4
     S : dict
@@ -853,10 +890,6 @@ class System:  # (SpectrumCalculator):
         Steady state of the Liouvillian
     s_k : array
         Stores small s (Eq. 7) from 10.1103/PhysRevB.102.119901
-    expect_data : dict
-        Stores expectation values calculated during the integration of the SME (daemon view), keys as in e_ops
-    expect_with_noise : dict
-        Stores expectation + detector noise values calculated during the integration of the SME, keys as in e_ops
     N : int
         Number of points in time series in window for the calculation of numerical spectra
     fs : float
@@ -869,21 +902,12 @@ class System:  # (SpectrumCalculator):
         Set if GPU should be used for analytic spectra calculation
     gpu_0 : int
         Stores pointer to zero an the GPU
-    reshape_ind: array
-        Extracts the trace from a flatted matrix (to avoid reshaping)
     """
 
-    def __init__(self, h, psi_0, c_ops, sc_ops, e_ops, c_measure_strength, sc_measure_strength):
+    def __init__(self, transition_dict, measurement_op):
 
-        # super().__init__(None)
-        self.H = h
-        self.transition_matrix = None
-        self.psi_0 = psi_0
-        self.c_ops = c_ops
-        self.sc_ops = sc_ops
-        self.e_ops = e_ops
-        self.c_measure_strength = c_measure_strength
-        self.sc_measure_strength = sc_measure_strength
+        self.transtion_matrix = rates_to_matrix(transition_dict)
+        self.measurement_op = measurement_op
 
         self.freq = {2: np.array([]), 3: np.array([]), 4: np.array([])}
         self.S = {1: 0, 2: np.array([]), 3: np.array([]), 4: np.array([])}
@@ -926,12 +950,6 @@ class System:  # (SpectrumCalculator):
         self.s_k = 0
 
         pickle_save(path, self)
-
-    # def fourier_g_prim(self, omega):
-    #    """
-    #    Helper method to move function out of the class. njit is not working within classes
-    #    """
-    #    return _fourier_g_prim(omega, self.eigvecs, self.eigvals, self.eigvecs_inv)
 
     def g_prim(self, t):
         """
@@ -1011,24 +1029,17 @@ class System:  # (SpectrumCalculator):
         omegas = 2 * np.pi * f_data  # [kHz]
         self.freq[order] = f_data
 
-        if self.transition_matrix is None:
-            transtion_matrix = self.rates_to_matrix(transition_dict)
-            n_states = transtion_matrix.shape[0]
-            self.transition_matrix = transtion_matrix
-            if verbose:
-                print('Diagonalizing transtion_matrix')
-            self.eigvals, self.eigvecs = eig(transtion_matrix)
-            if verbose:
-                print('transtion_matrix has been diagonalized')
+        n_states = self.transtion_matrix.shape[0]
+        self.eigvals, self.eigvecs = eig(self.transtion_matrix)
 
-            self.eigvecs_inv = inv(self.eigvecs)
-            self.zero_ind = np.argmax(np.real(self.eigvals))
+        self.eigvecs_inv = inv(self.eigvecs)
+        self.zero_ind = np.argmax(np.real(self.eigvals))
 
-            self.zero_ind = np.argmax(np.real(self.eigvals))
-            rho_steady = self.eigvecs[:, self.zero_ind]
-            rho_steady = rho_steady / np.trace(rho_steady)
+        self.zero_ind = np.argmax(np.real(self.eigvals))
+        rho_steady = self.eigvecs[:, self.zero_ind]
+        rho_steady = rho_steady / np.trace(rho_steady)
 
-            self.rho_steady = rho_steady
+        self.rho_steady = rho_steady
 
         if order == 2:
             spec_data = 1j * np.ones_like(omegas)
@@ -1231,7 +1242,7 @@ class System:  # (SpectrumCalculator):
 
             if np.max(np.abs(np.imag(np.real_if_close(_full_trispec(spec_data))))) > 0:
                 print('Trispectrum might have an imaginary part')
-            # self.S[order] = np.real(_full_trispec(spec_data)) * beta ** 8
+
             self.S[order] = _full_trispec(spec_data)
 
         clear_cache_dict()
