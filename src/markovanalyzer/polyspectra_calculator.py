@@ -1051,7 +1051,8 @@ class System:  # (SpectrumCalculator):
         else:
             rho_steady = self.rho_steady
 
-        self.A_prim = np.diag(measurement_op) - np.eye(n_states ** 2) * np.sum((measurement_op @ rho_steady))
+
+        self.A_prim = np.diag(measurement_op) - np.eye(n_states) * np.sum((measurement_op @ rho_steady))
 
         rho = self.A_prim @ rho_steady
 
