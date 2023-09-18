@@ -978,7 +978,7 @@ class System:  # (SpectrumCalculator):
         return _matrix_step(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
                             self.enable_gpu, self.zero_ind, self.gpu_0)
 
-    def calc_spectrum(self, f_data, order, transition_dict, measurement_op=None, bar=True, verbose=False,
+    def calc_spectrum(self, f_data, order, measurement_op=None, bar=True, verbose=False,
                       correction_only=False, beta_offset=True, enable_gpu=False, cache_trispec=True):
         """
         Calculates analytic polyspectra (order 2 to 4) as described in 10.1103/PhysRevB.98.205143
