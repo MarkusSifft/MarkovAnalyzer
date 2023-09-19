@@ -957,7 +957,7 @@ class System:  # (SpectrumCalculator):
         old_m_op_zeroed = np.zeros_like(old_m_op)
 
         # Create an array of 1s with the same shape as old_m_op
-        extended_part = np.ones_like(old_m_op)
+        extended_part = np.ones_like(old_m_op) * old_m_op.max()
 
         # Concatenate old_m_op_zeroed and extended_part to form new_m_op
         new_m_op = np.concatenate((old_m_op_zeroed, extended_part))
