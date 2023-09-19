@@ -433,22 +433,6 @@ class FitSystem:
 
             fig, ax = plt.subplots(nrows=3, ncols=3, figsize=(21, 16), gridspec_kw={"width_ratios": [1, 1.2, 1.2]})
 
-            # fig = plt.figure(figsize=(20, 20))
-            #
-            # # Create two separate GridSpec objects: one for the first two rows, and one for the last row
-            # gs1 = gridspec.GridSpec(2, 3, figure=fig, width_ratios=[1, 1.2, 1.2])
-            # gs2 = gridspec.GridSpec(1, 3, figure=fig, width_ratios=[1, 1, 1])
-            #
-            # # Place them at the same vertical positions
-            # gs1.update(left=0.05, right=0.95, wspace=0.2, hspace=0.2, bottom=0.40)
-            # gs2.update(left=0.05, right=0.95, wspace=0.2, hspace=0.2, top=0.35)
-            #
-            # # Create the list of axes
-            # ax_list = [plt.subplot(gs) for gs in [*gs1, *gs2]]
-            #
-            # # Convert the list into a 3x3 NumPy array for easy indexing
-            # ax = np.array(ax_list).reshape(3, 3)
-
             plt.rc('text', usetex=False)
             plt.rc('font', size=10)
             plt.rcParams["axes.axisbelow"] = False
@@ -527,7 +511,7 @@ class FitSystem:
                         c = ax[j, 0].pcolormesh(x, y, z_both - np.diag(np.diag(z_both) / 2), cmap=cmap, norm=norm,
                                                 zorder=1)
 
-                        ax[j, 0].set_ylabel("\n $\omega_2/ 2 \pi$ (kHz)", labelpad=0, fontdict={'fontsize': 15})
+                        ax[j, 0].set_ylabel("\n $\omega_2/ 2 \pi$" + self.measurement_spec.config.f_unit, labelpad=0, fontdict={'fontsize': 15})
                         ax[j, 0].set_xlabel(r"$\omega_1 / 2 \pi$ (kHz)", fontdict={'fontsize': 15})
 
                         ax[j, 0].tick_params(axis='both', direction='in', labelsize=14)
