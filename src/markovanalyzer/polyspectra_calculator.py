@@ -907,8 +907,10 @@ class System:  # (SpectrumCalculator):
         Stores pointer to zero an the GPU
     """
 
-    def __init__(self, transition_dict, measurement_op):
+    def __init__(self, transition_dict, measurement_op, gamma_det=None):
 
+        if gamma_det is not None:
+            transition_dict = self.extension_for_single_photon(transition_dict, measurement_op, gamma_det)
         self.transtion_matrix = rates_to_matrix(transition_dict)
         self.measurement_op = measurement_op
 
@@ -1007,6 +1009,117 @@ class System:  # (SpectrumCalculator):
         for order in orders:
             self.calculate_one_spectrum(f_data, order, measurement_op=measurement_op, bar=bar, verbose=verbose,
                                correction_only=correction_only, beta_offset=beta_offset, enable_gpu=enable_gpu, cache_trispec=cache_trispec)
+
+    def replicate_and_extend_rates(self, rates):
+        """
+        Replicates the rates dictionary by adding the highest state number + 1 to all states.
+        The replicated rates are then added to the original rates dictionary.
+
+        Parameters
+        ----------
+        rates : dict
+            Original rates dictionary where keys are in 'from_state->to_state' format and values are the rates.
+
+        Returns
+        -------
+        dict
+            Extended rates dictionary containing both the original and replicated rates.
+
+        Example
+        -------
+        >>> rates = {'0->1': 'gamma_in', '0->2': 'gamma_in', '1->0': 'gamma_A', '1->2': 'gamma_spin + gamma_R', '2->1': 'gamma_spin'}
+        >>> replicate_and_extend_rates(rates)
+        {'0->1': 'gamma_in',
+         '0->2': 'gamma_in',
+         '1->0': 'gamma_A',
+         '1->2': 'gamma_spin + gamma_R',
+         '2->1': 'gamma_spin',
+         '3->4': 'gamma_in',
+         '3->5': 'gamma_in',
+         '4->3': 'gamma_A',
+         '4->5': 'gamma_spin + gamma_R',
+         '5->4': 'gamma_spin'}
+        """
+        # Find the highest state number in the original rates dictionary
+        highest_state = max([int(state) for key in rates for state in key.split("->")])
+
+        # The new state numbers should start from highest_state + 1
+        offset = highest_state + 1
+
+        # Create the replicated rates dictionary
+        rates_2 = {}
+        for key, value in rates.items():
+            from_state, to_state = map(int, key.split("->"))
+            new_key = f"{from_state + offset}->{to_state + offset}"
+            rates_2[new_key] = value
+
+        # Extend the original rates dictionary with the replicated rates
+        rates.update(rates_2)
+
+        return rates
+
+    def extension_for_single_photon(self, rates, m_op, gamma_det):
+        """
+        Adds further connections to the rates dictionary based on the input array m_op and float gamma_det.
+
+        Parameters
+        ----------
+        rates : dict
+            Existing rates dictionary where keys are in 'from_state->to_state' format and values are the rates.
+        m_op : list
+            Array of rates used to connect the original levels with their corresponding replicated levels.
+        gamma_det : float
+            Rate used to connect each replicated level back to its original level.
+
+        Returns
+        -------
+        dict
+            Extended rates dictionary containing both the original, replicated, and new connection rates.
+
+        Example
+        -------
+        >>> rates = {'0->1': 'gamma_in', '0->2': 'gamma_in', '1->0': 'gamma_A', '1->2': 'gamma_spin + gamma_R', '2->1': 'gamma_spin'}
+        >>> m_op = ['m_op[0]', 'm_op[1]', 'm_op[2]']
+        >>> gamma_det = 'gamma_det'
+        >>> extension_for_single_photon(rates, m_op, gamma_det)
+        {
+            '0->1': 'gamma_in',
+            '0->2': 'gamma_in',
+            '1->0': 'gamma_A',
+            '1->2': 'gamma_spin + gamma_R',
+            '2->1': 'gamma_spin',
+            '3->4': 'gamma_in',
+            '3->5': 'gamma_in',
+            '4->3': 'gamma_A',
+            '4->5': 'gamma_spin + gamma_R',
+            '5->4': 'gamma_spin',
+            '0->3': 'm_op[0]',
+            '1->4': 'm_op[1]',
+            '2->5': 'm_op[2]',
+            '3->0': 'gamma_det',
+            '4->1': 'gamma_det',
+            '5->2': 'gamma_det'
+        }
+        """
+        # Replicate and extend the existing rates
+        extended_rates = self.replicate_and_extend_rates(rates)
+
+        # Add further connections based on m_op
+        for i, rate in enumerate(m_op):
+            # Find the replicated state corresponding to the original state
+            replicated_state = i + 3  # 3 is the offset based on the specific example
+            new_key = f"{i}->{replicated_state}"
+            extended_rates[new_key] = rate
+
+        # Add connections from each replicated level back to its original level
+        for i in range(len(m_op)):
+            # Find the replicated state corresponding to the original state
+            replicated_state = i + 3  # 3 is the offset based on the specific example
+            new_key = f"{replicated_state}->{i}"
+            extended_rates[new_key] = gamma_det
+
+        return extended_rates
+
 
     def calculate_one_spectrum(self, f_data, order, measurement_op=None, bar=True, verbose=False,
                                correction_only=False, beta_offset=True, enable_gpu=False, cache_trispec=True):
