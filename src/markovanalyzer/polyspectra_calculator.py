@@ -1252,6 +1252,7 @@ class System:  # (SpectrumCalculator):
 
         else:
             self.gpu_0 = 0
+            measurement_op = self.measurement_op
 
         # estimate necessary cachesize (TODO: Anteile könnten noch anders gewählt werden)
         # update_cache_size('cache_fourier_g_prim', self.A_prim, enable_gpu)
