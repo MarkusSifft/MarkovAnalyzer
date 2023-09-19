@@ -1160,7 +1160,7 @@ class System:  # (SpectrumCalculator):
         return extended_rates
 
 
-    def calculate_one_spectrum(self, f_data, order, measurement_op=None, bar=True, verbose=False,
+    def calculate_one_spectrum(self, f_data, order, bar=True, verbose=False,
                                correction_only=False, beta_offset=True, enable_gpu=False, cache_trispec=True):
         """
         Calculates analytic polyspectra (order 2 to 4) as described in 10.1103/PhysRevB.98.205143
@@ -1172,10 +1172,6 @@ class System:  # (SpectrumCalculator):
             Frequencies at which the spectra are calculated
         order : int {2,3,4}
             Order of the polyspectra to be calculated
-        measure_op : str
-            Key of the operator in sc_ops to be used as measurement operator
-        measurement_op : array
-            Stores the measurement superoperator \mathcal{A} as defined in 10.1103/PhysRevB.98.205143
         g_prim : bool
             Set if mathcal_a should be applied twice/squared (was of use when defining the current operator)
             But unnecessary for standard polyspectra
@@ -1236,7 +1232,7 @@ class System:  # (SpectrumCalculator):
         else:
             rho_steady = self.rho_steady
 
-        self.A_prim = np.diag(measurement_op) - np.eye(n_states) * np.sum((measurement_op @ rho_steady))
+        self.A_prim = np.diag(self.measurement_op) - np.eye(n_states) * np.sum((self.measurement_op @ rho_steady))
 
         rho = self.A_prim @ rho_steady
 
@@ -1252,7 +1248,7 @@ class System:  # (SpectrumCalculator):
 
             self.A_prim = to_gpu(self.A_prim)
             rho = to_gpu(rho)
-            measurement_op = to_gpu(measurement_op)
+            measurement_op = to_gpu(self.measurement_op)
 
             if order == 2:
                 rho_prim_sum = to_gpu(1j * np.zeros((len(omegas), n_states)))
