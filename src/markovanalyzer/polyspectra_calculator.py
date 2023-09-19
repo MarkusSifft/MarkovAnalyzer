@@ -1024,7 +1024,7 @@ class System:  # (SpectrumCalculator):
         fig = plot.plot()
         return fig
 
-    def calculate_spectrum(self, f_data, order_in, measurement_op=None, bar=True, verbose=False,
+    def calculate_spectrum(self, f_data, order_in, bar=True, verbose=False,
                                correction_only=False, beta_offset=True, enable_gpu=False, cache_trispec=True):
 
         if order_in == 'all':
@@ -1033,7 +1033,7 @@ class System:  # (SpectrumCalculator):
             orders = order_in
 
         for order in orders:
-            self.calculate_one_spectrum(f_data, order, measurement_op=measurement_op, bar=bar, verbose=verbose,
+            self.calculate_one_spectrum(f_data, order, bar=bar, verbose=verbose,
                                correction_only=correction_only, beta_offset=beta_offset, enable_gpu=enable_gpu, cache_trispec=cache_trispec)
 
     def replicate_and_extend_rates(self, rates):
