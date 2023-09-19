@@ -71,13 +71,13 @@ class FitSystem:
 
     def s1(self, system, omegas):
 
-        spec = system.calculate_one_spectrum(omegas, order=1)
+        spec = system.calculate_one_spectrum(omegas, order=1, bar=False)
 
         return np.real(spec)
 
     def s2(self, params, system, omegas):
 
-        spec = system.calculate_one_spectrum(omegas, order=2)
+        spec = system.calculate_one_spectrum(omegas, order=2, bar=False)
 
         if isinstance(params, np.ndarray):
             return np.real(spec) + params[-1]
@@ -86,13 +86,13 @@ class FitSystem:
 
     def s3(self, system, omegas):
 
-        spec = system.calculate_one_spectrum(omegas, order=3)
+        spec = system.calculate_one_spectrum(omegas, order=3, bar=False)
 
         return np.real(spec)
 
     def s4(self, system, omegas):
 
-        spec = system.calculate_one_spectrum(omegas, order=4)
+        spec = system.calculate_one_spectrum(omegas, order=4, bar=False)
 
         return np.real(spec)
 
