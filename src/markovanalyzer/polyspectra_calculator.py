@@ -48,6 +48,9 @@ import pickle
 import arrayfire as af
 from arrayfire.interop import from_ndarray as to_gpu
 
+from signalsnap.spectrum_plotter import SpectrumPlotter
+from signalsnap.plot_config import PlotConfig
+
 #  from pympler import asizeof
 
 # ------ setup caches for a speed up when summing over all permutations -------
@@ -978,8 +981,20 @@ class System:  # (SpectrumCalculator):
         return _matrix_step(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
                             self.enable_gpu, self.zero_ind, self.gpu_0)
 
-    def calc_spectrum(self, f_data, order, measurement_op=None, bar=True, verbose=False,
-                      correction_only=False, beta_offset=True, enable_gpu=False, cache_trispec=True):
+    def calculate_spectrum(self, f_data, order_in, measurement_op=None, bar=True, verbose=False,
+                               correction_only=False, beta_offset=True, enable_gpu=False, cache_trispec=True):
+
+        if order_in == 'all':
+            orders = [1, 2, 3, 4]
+        else:
+            orders = order_in
+
+        for order in orders:
+            self.calculate_one_spectrum(f_data, order, measurement_op=measurement_op, bar=bar, verbose=verbose,
+                               correction_only=correction_only, beta_offset=beta_offset, enable_gpu=enable_gpu, cache_trispec=cache_trispec)
+
+    def calculate_one_spectrum(self, f_data, order, measurement_op=None, bar=True, verbose=False,
+                               correction_only=False, beta_offset=True, enable_gpu=False, cache_trispec=True):
         """
         Calculates analytic polyspectra (order 2 to 4) as described in 10.1103/PhysRevB.98.205143
         and 10.1103/PhysRevB.102.119901
