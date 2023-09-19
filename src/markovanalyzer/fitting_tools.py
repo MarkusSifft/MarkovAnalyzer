@@ -465,7 +465,7 @@ class FitSystem:
                                       color=[0, 0.5, 0.9], label='meas.')
                     c = ax[0, 1].plot(self.f_list[2], fit_list[2], '--k', alpha=0.8, label='fit')
 
-                    ax[0, 1].set_ylabel(r"$S^{(2)}_z$ (" + self.f_unit + "^{-1}$)", fontdict={'fontsize': 15})
+                    ax[0, 1].set_ylabel(r"$S^{(2)}_z$ (" + self.f_unit + r"$^{-1}$)", fontdict={'fontsize': 15})
                     ax[0, 1].set_xlabel(r"$\omega/ 2 \pi$ (" + self.f_unit + ")", fontdict={'fontsize': 15})
 
                     ax[0, 1].tick_params(axis='both', direction='in', labelsize=14)
@@ -478,11 +478,11 @@ class FitSystem:
                                       color=[0, 0.5, 0.9], label='rel. err.')
                     relative_measurement_error = sigma * self.err_list[2] / self.s_list[2]
                     ax[0, 2].fill_between(self.f_list[2], relative_measurement_error,
-                                          -relative_measurement_error, alpha=0.3)
-                    ax[0, 2].plot(self.f_list[2], relative_measurement_error, 'k', alpha=0.5)
-                    ax[0, 2].plot(self.f_list[2], -relative_measurement_error, 'k', alpha=0.5)
+                                          -relative_measurement_error, alpha=0.1)
+                    ax[0, 2].plot(self.f_list[2], relative_measurement_error, 'k', alpha=0.1)
+                    ax[0, 2].plot(self.f_list[2], -relative_measurement_error, 'k', alpha=0.1)
 
-                    ax[0, 2].set_ylabel(r"$S^{(2)}_z$ (" + self.f_unit + "^{-1}$)", fontdict={'fontsize': 15})
+                    ax[0, 2].set_ylabel(r"$S^{(2)}_z$ (" + self.f_unit + r"$^{-1}$)", fontdict={'fontsize': 15})
                     ax[0, 2].set_xlabel(r"$\omega/ 2 \pi$ (" + self.f_unit + ")", fontdict={'fontsize': 15})
                     ax[0, 2].tick_params(axis='both', direction='in', labelsize=14)
                     ax[0, 2].set_title(r'rel. err. and fit deviation in $S^{(2)}_z(\omega)$')
