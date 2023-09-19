@@ -55,7 +55,7 @@ from signalsnap.plot_config import PlotConfig
 
 # ------ new cache_fourier_g_prim implementation -------
 # Initial maxsize
-initial_max_cache_size = 1e0  # Set to 1 to allow the first item to be cached
+initial_max_cache_size = 1e9  # Set to 1 to allow the first item to be cached
 
 # Create a cache with initial maxsize
 cache_dict = {'cache_fourier_g_prim': LRUCache(maxsize=initial_max_cache_size),
