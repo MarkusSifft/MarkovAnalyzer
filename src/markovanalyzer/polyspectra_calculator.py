@@ -1413,7 +1413,7 @@ class System:  # (SpectrumCalculator):
 
                 spec_data[(spec_data == 0).nonzero()] = spec_data.T[(spec_data == 0).nonzero()]
 
-            if np.max(np.abs(np.imag(np.real_if_close(_full_trispec(spec_data))))) > 0:
+            if np.max(np.abs(np.imag(np.real_if_close(_full_trispec(spec_data))))) > 0 and verbose:
                 print('Trispectrum might have an imaginary part')
 
             self.S[order] = _full_trispec(spec_data)
