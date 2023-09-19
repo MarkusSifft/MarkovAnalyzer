@@ -54,7 +54,7 @@ except NameError:
 
 class FitSystem:
 
-    def __init__(self, set_system, huber_loss=False, huber_delta=1, enable_gpu=False):
+    def __init__(self, set_system, f_unit='Hz', huber_loss=False, huber_delta=1, enable_gpu=False):
         self.beta_offset = None
         self.set_system = set_system
         self.out = None
@@ -68,6 +68,7 @@ class FitSystem:
         self.huber_loss = huber_loss
         self.huber_delta = huber_delta
         self.enable_gpu = enable_gpu
+        self.f_unit= f_unit
 
     def s1(self, system, omegas):
 
@@ -464,8 +465,8 @@ class FitSystem:
                                       color=[0, 0.5, 0.9], label='meas.')
                     c = ax[0, 1].plot(self.f_list[2], fit_list[2], '--k', alpha=0.8, label='fit')
 
-                    ax[0, 1].set_ylabel(r"$S^{(2)}_z$ (kHz$^{-1}$)", fontdict={'fontsize': 15})
-                    ax[0, 1].set_xlabel(r"$\omega/ 2 \pi$ (kHz)", fontdict={'fontsize': 15})
+                    ax[0, 1].set_ylabel(r"$S^{(2)}_z$ (" + self.f_unit + "^{-1}$)", fontdict={'fontsize': 15})
+                    ax[0, 1].set_xlabel(r"$\omega/ 2 \pi$ (" + self.f_unit + ")", fontdict={'fontsize': 15})
 
                     ax[0, 1].tick_params(axis='both', direction='in', labelsize=14)
                     ax[0, 1].legend()
@@ -481,8 +482,8 @@ class FitSystem:
                     ax[0, 2].plot(self.f_list[2], relative_measurement_error, 'k', alpha=0.5)
                     ax[0, 2].plot(self.f_list[2], -relative_measurement_error, 'k', alpha=0.5)
 
-                    ax[0, 2].set_ylabel(r"$S^{(2)}_z$ (kHz$^{-1}$)", fontdict={'fontsize': 15})
-                    ax[0, 2].set_xlabel(r"$\omega/ 2 \pi$ (kHz)", fontdict={'fontsize': 15})
+                    ax[0, 2].set_ylabel(r"$S^{(2)}_z$ (" + self.f_unit + "^{-1}$)", fontdict={'fontsize': 15})
+                    ax[0, 2].set_xlabel(r"$\omega/ 2 \pi$ (" + self.f_unit + ")", fontdict={'fontsize': 15})
                     ax[0, 2].tick_params(axis='both', direction='in', labelsize=14)
                     ax[0, 2].set_title(r'rel. err. and fit deviation in $S^{(2)}_z(\omega)$')
                     ax[0, 2].legend()
@@ -511,8 +512,8 @@ class FitSystem:
                         c = ax[j, 0].pcolormesh(x, y, z_both - np.diag(np.diag(z_both) / 2), cmap=cmap, norm=norm,
                                                 zorder=1)
 
-                        ax[j, 0].set_ylabel("\n $\omega_2/ 2 \pi$" + self.measurement_spec.config.f_unit, labelpad=0, fontdict={'fontsize': 15})
-                        ax[j, 0].set_xlabel(r"$\omega_1 / 2 \pi$ (kHz)", fontdict={'fontsize': 15})
+                        ax[j, 0].set_ylabel("\n $\omega_2/ 2 \pi$ (" + self.f_unit + ")", labelpad=0, fontdict={'fontsize': 15})
+                        ax[j, 0].set_xlabel(r"$\omega_1 / 2 \pi$ (" + self.f_unit + ")", fontdict={'fontsize': 15})
 
                         ax[j, 0].tick_params(axis='both', direction='in', labelsize=14)
                         ax[j, 0].set_title('Fit / Measurement')
@@ -544,8 +545,8 @@ class FitSystem:
                         c = ax[j, 1].pcolormesh(x, y, relative_fit_err, cmap=cmap, norm=norm, zorder=1)
                         ax[j, 1].pcolormesh(x, y, err_matrix, cmap=cmap_sigma, vmin=0, vmax=1, shading='auto')
 
-                        ax[j, 1].set_ylabel("\n $\omega_2/ 2 \pi$ (kHz)", labelpad=0, fontdict={'fontsize': 15})
-                        ax[j, 1].set_xlabel(r"$\omega_1 / 2 \pi$ (kHz)", fontdict={'fontsize': 15})
+                        ax[j, 1].set_ylabel("\n $\omega_2/ 2 \pi$ (" + self.f_unit + ")", labelpad=0, fontdict={'fontsize': 15})
+                        ax[j, 1].set_xlabel(r"$\omega_1 / 2 \pi$ (" + self.f_unit + ")", fontdict={'fontsize': 15})
 
                         ax[j, 1].tick_params(axis='both', direction='in', labelsize=14)
                         ax[j, 1].set_title('relative error')
@@ -635,7 +636,7 @@ class FitSystem:
                         ax[j, 2].plot(self.f_list[i], s_err_diag_n, 'k', alpha=0.1)
 
                         ax[j, 2].set_ylabel(r"arcsinh scaled values", fontdict={'fontsize': 15})
-                        ax[j, 2].set_xlabel(r"$\omega_1/ 2 \pi$ (kHz)", fontdict={'fontsize': 15})
+                        ax[j, 2].set_xlabel(r"$\omega_1/ 2 \pi$ (" + self.f_unit + ")", fontdict={'fontsize': 15})
 
                         ax[j, 2].tick_params(axis='both', direction='in', labelsize=14)
                         ax[j, 2].legend()
