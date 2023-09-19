@@ -1136,7 +1136,7 @@ class System:  # (SpectrumCalculator):
             # Find the replicated state corresponding to the original state
             replicated_state = i + len(m_op)
             new_key = f"{i}->{replicated_state}"
-            if emits == 1:
+            if emits > 0:
                 extended_rates[new_key] = gamma_ph
             else:
                 extended_rates[new_key] = 0
