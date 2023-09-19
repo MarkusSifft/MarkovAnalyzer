@@ -992,7 +992,7 @@ class System:  # (SpectrumCalculator):
         plot = SpectrumPlotter(self, config)
 
         if self.S[1] is not None:
-            print('s1:', self.S)
+            print('s1:', self.S[1])
         fig = plot.plot()
         return fig
 
