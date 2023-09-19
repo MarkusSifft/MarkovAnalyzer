@@ -1134,7 +1134,7 @@ class System:  # (SpectrumCalculator):
         # Add further connections based on m_op
         for i, emits in enumerate(m_op):
             # Find the replicated state corresponding to the original state
-            replicated_state = i + 3  # 3 is the offset based on the specific example
+            replicated_state = i + len(m_op)
             new_key = f"{i}->{replicated_state}"
             if emits == 1:
                 extended_rates[new_key] = gamma_ph
@@ -1144,7 +1144,7 @@ class System:  # (SpectrumCalculator):
         # Add connections from each replicated level back to its original level
         for i in range(len(m_op)):
             # Find the replicated state corresponding to the original state
-            replicated_state = i + 3  # 3 is the offset based on the specific example
+            replicated_state = i + len(m_op)
             new_key = f"{replicated_state}->{i}"
             extended_rates[new_key] = gamma_det
 
