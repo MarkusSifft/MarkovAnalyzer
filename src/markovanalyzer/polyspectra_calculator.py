@@ -851,16 +851,6 @@ def rates_to_matrix(rates):
     return matrix.T
 
 
-# Example usage
-try:
-    Rates = {"3->1": 0.6, "2->3": 1.4}
-    matrix = rates_to_matrix(Rates)
-    print("Transition Rate Matrix:")
-    print(matrix)
-except ValueError as e:
-    print(e)
-
-
 class System:  # (SpectrumCalculator):
     """
     Class that will represent the system of interest. It contains the parameters of the system and the
