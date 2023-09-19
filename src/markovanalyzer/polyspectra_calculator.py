@@ -907,10 +907,12 @@ class System:  # (SpectrumCalculator):
         Stores pointer to zero an the GPU
     """
 
-    def __init__(self, transition_dict, measurement_op, gamma_det=None):
+    def __init__(self, transition_dict, measurement_op, gamma_ph=None, gamma_det=None):
 
-        if gamma_det is not None:
-            transition_dict = self.extension_for_single_photon(transition_dict, measurement_op, gamma_det)
+        if gamma_det is not None and gamma_ph is not None:
+            transition_dict = self.extension_for_single_photon(transition_dict, measurement_op, gamma_ph, gamma_det)
+            self.measurement_op = self.transform_m_op(measurement_op)
+
         self.transtion_matrix = rates_to_matrix(transition_dict)
         self.measurement_op = measurement_op
 
@@ -936,6 +938,40 @@ class System:  # (SpectrumCalculator):
         # ------- Enable GPU for large systems -------
         self.enable_gpu = False
         self.gpu_0 = 0
+
+    def transform_m_op(self, old_m_op):
+        """
+        Transforms the input array old_m_op to a new array new_m_op.
+        The new array is twice as long, with the original entries set to 0,
+        and the new entries set to 1.
+
+        Parameters
+        ----------
+        old_m_op : numpy.ndarray
+            Original m_op array.
+
+        Returns
+        -------
+        new_m_op : numpy.ndarray
+            Transformed m_op array.
+
+        Example
+        -------
+        >>> old_m_op = np.array([1, 0, 0])
+        >>> transform_m_op(old_m_op)
+        array([0, 0, 0, 1, 1, 1])
+        """
+
+        # Set all entries in the old_m_op to 0
+        old_m_op_zeroed = np.zeros_like(old_m_op)
+
+        # Create an array of 1s with the same shape as old_m_op
+        extended_part = np.ones_like(old_m_op)
+
+        # Concatenate old_m_op_zeroed and extended_part to form new_m_op
+        new_m_op = np.concatenate((old_m_op_zeroed, extended_part))
+
+        return new_m_op
 
     def save_spec(self, path):
         """
@@ -1058,7 +1094,7 @@ class System:  # (SpectrumCalculator):
 
         return rates
 
-    def extension_for_single_photon(self, rates, m_op, gamma_det):
+    def extension_for_single_photon(self, rates, m_op, gamma_ph, gamma_det):
         """
         Adds further connections to the rates dictionary based on the input array m_op and float gamma_det.
 
@@ -1105,11 +1141,14 @@ class System:  # (SpectrumCalculator):
         extended_rates = self.replicate_and_extend_rates(rates)
 
         # Add further connections based on m_op
-        for i, rate in enumerate(m_op):
+        for i, emits in enumerate(m_op):
             # Find the replicated state corresponding to the original state
             replicated_state = i + 3  # 3 is the offset based on the specific example
             new_key = f"{i}->{replicated_state}"
-            extended_rates[new_key] = rate
+            if emits == 1:
+                extended_rates[new_key] = gamma_ph
+            else:
+                extended_rates[new_key] = 0
 
         # Add connections from each replicated level back to its original level
         for i in range(len(m_op)):
