@@ -54,10 +54,9 @@ except NameError:
 
 class FitSystem:
 
-    def __init__(self, set_system, m_op, huber_loss=False, huber_delta=1, enable_gpu=False):
+    def __init__(self, set_system, huber_loss=False, huber_delta=1, enable_gpu=False):
         self.beta_offset = None
         self.set_system = set_system
-        self.m_op = m_op
         self.out = None
         self.measurement_spec = None
         self.f_list = None
