@@ -264,77 +264,32 @@ class FitSystem:
             fit_orders = [1, 2, 3, 4]
             self.fit_orders = fit_orders
 
-            print('Low Resolution')
+            self.f_list_original = self.f_list.copy()
+            self.s_list_original = self.s_list.copy()
+            self.err_list_original = self.err_list.copy()
 
-            f_list_sampled = [data[::2 ** (i + 3)] for i, data in enumerate(self.f_list)]
+            for res in [100, 50, 20, 10, 5, 2, 1]:
 
-            s_list_sampled = []
-            for i, data in enumerate(self.s_list):
-                if i == 0:
-                    s_list_sampled.append(data[::2 ** (i + 3)])
-                else:
-                    s_list_sampled.append(data[::2 ** (i + 3), ::2 ** (i + 3)])
+                if res == 1:
+                    print('Fitting at full resolution')
 
-            err_list_sampled = []
-            for i, data in enumerate(self.err_list):
-                if i == 0:
-                    err_list_sampled.append(data[::2 ** (i + 3)])
-                else:
-                    err_list_sampled.append(data[::2 ** (i + 3), ::2 ** (i + 3)])
+                for i in range(1, 5):
+                    self.f_list[i] = self.f_list_original[i][::res]
+                    if i == 2:
+                        self.s_list[i] = self.s_list_original[i][::res]
+                        self.err_list[i] = self.err_list_original[i][::res]
+                    elif i > 2:
+                        self.s_list[i] = self.s_list_original[i][::res,::res]
+                        self.err_list[i] = self.err_list_original[i][::res,::res]
 
-            result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol)
+                result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol)
 
-            for p in result.params:
-                fit_params[p].value = result.params[p].value
+                for p in result.params:
+                    fit_params[p].value = result.params[p].value
 
-            print('Medium Resolution')
-
-            f_list_sampled = [data[::2 ** (i + 2)] for i, data in enumerate(self.f_list)]
-
-            s_list_sampled = []
-            for i, data in enumerate(self.s_list):
-                if i == 0:
-                    s_list_sampled.append(data[::2 ** (i + 2)])
-                else:
-                    s_list_sampled.append(data[::2 ** (i + 2), ::2 ** (i + 2)])
-
-            err_list_sampled = []
-            for i, data in enumerate(self.err_list):
-                if i == 0:
-                    err_list_sampled.append(data[::2 ** (i + 2)])
-                else:
-                    err_list_sampled.append(data[::2 ** (i + 2), ::2 ** (i + 2)])
-
-            result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol)
-
-            for p in result.params:
-                fit_params[p].value = result.params[p].value
-
-            print('High Resolution')
-
-            f_list_sampled = [data[::2 ** (i + 1)] for i, data in enumerate(self.f_list)]
-
-            s_list_sampled = []
-            for i, data in enumerate(self.s_list):
-                if i == 0:
-                    s_list_sampled.append(data[::2 ** (i + 1)])
-                else:
-                    s_list_sampled.append(data[::2 ** (i + 1), ::2 ** (i + 1)])
-
-            err_list_sampled = []
-            for i, data in enumerate(self.err_list):
-                if i == 0:
-                    err_list_sampled.append(data[::2 ** (i + 1)])
-                else:
-                    err_list_sampled.append(data[::2 ** (i + 1), ::2 ** (i + 1)])
-
-            result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol)  # TODO .._sampled need to be given
-
-            for p in result.params:
-                fit_params[p].value = result.params[p].value
-
-            print('Full Resolution')
-            result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol)
+                errors = {k: result.params[k].stderr for k in result.params.keys()}
+                self.saved_errors[-1] = errors  # Update the last element with the final errors
+                self.display_params(result.params.valuesdict().copy(), self.initial_params, errors)
 
         else:
             print('Parameter fit_order must be: (order_wise, resolution_wise)')
