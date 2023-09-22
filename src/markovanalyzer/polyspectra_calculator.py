@@ -82,9 +82,9 @@ def get_free_system_memory():
 
 
 @cached(cache=cache_dict['cache_fourier_g_prim'],
-        key=lambda nu, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0: hashkey(
+        key=lambda nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
             nu))
-def _fourier_g_prim_gpu(nu, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0):
+def _fourier_g_prim_gpu(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates the fourier transform of \mathcal{G'} as defined in 10.1103/PhysRevB.98.205143
 
@@ -127,10 +127,10 @@ def _fourier_g_prim_gpu(nu, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind,
 
 
 @cached(cache=cache_dict['cache_fourier_g_prim'],
-        key=lambda nu, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0: hashkey(
+        key=lambda nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
             nu))
 @njit(fastmath=True)
-def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0):
+def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates the fourier transform of \mathcal{G'} as defined in 10.1103/PhysRevB.98.205143
 
@@ -235,15 +235,15 @@ def _g_prim(t, eigvecs, eigvals, eigvecs_inv):
 
 
 @cached(cache=cache_dict['cache_first_matrix_step'],
-        key=lambda rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0: hashkey(omega))
-def _first_matrix_step(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0):
+        key=lambda rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(omega))
+def _first_matrix_step_gpu(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates first matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143. Used
     for the calculation of power- and bispectrum.
     Parameters
     ----------
     rho : array
-        rho equals matmul(A,Steadystate desity matrix of the system)
+        rho equals matmul(A, Steadystate desity matrix of the system)
     omega : float
         Desired frequency
     a_prim : array
@@ -267,14 +267,49 @@ def _first_matrix_step(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, enable
         First matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
     """
 
-    if enable_gpu:
-        G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0)
-        rho_prim = af.matmul(G_prim, rho)
-        out = af.matmul(a_prim, rho_prim)
-    else:
-        G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0)
-        rho_prim = G_prim @ rho
-        out = a_prim @ rho_prim
+    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = af.matmul(G_prim, rho)
+    out = af.matmul(a_prim, rho_prim)
+
+    return out
+
+@cached(cache=cache_dict['cache_first_matrix_step'],
+        key=lambda rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(omega))
+@njit(fastmath=True)
+def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
+    """
+    Calculates first matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143. Used
+    for the calculation of power- and bispectrum.
+    Parameters
+    ----------
+    rho : array
+        rho equals matmul(A, Steadystate desity matrix of the system)
+    omega : float
+        Desired frequency
+    a_prim : array
+        Super operator A' as defined in 10.1103/PhysRevB.98.205143
+    eigvecs : array
+        Eigenvectors of the Liouvillian
+    eigvals : array
+        Eigenvalues of the Liouvillian
+    eigvecs_inv : array
+        The inverse eigenvectors of the Liouvillian
+    enable_gpu : bool
+        Set if calculations should be performed on GPU
+    zero_ind : int
+        Index of steady state in \mathcal{G}
+    gpu_0 : int
+        Pointer to presaved zero on GPU. Avoids unnecessary transfers of zeros from CPU to GPU
+
+    Returns
+    -------
+    out : array
+        First matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
+    """
+
+    G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = G_prim @ rho
+    out = a_prim @ rho_prim
 
     return out
 
@@ -776,9 +811,6 @@ def pickle_save(path, obj):
     f.close()
 
 
-import numpy as np
-
-
 def rates_to_matrix(rates):
     """
     Convert a dictionary of rates to a continuous-time Markov process transition rate matrix.
@@ -985,8 +1017,12 @@ class System:  # (SpectrumCalculator):
         """
         Helper method to move function out of the class. njit is not working within classes
         """
-        return _first_matrix_step(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
-                                  self.enable_gpu, self.zero_ind, self.gpu_0)
+        if self.enable_gpu:
+            return _first_matrix_step_gpu(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
+                                          self.zero_ind, self.gpu_0)
+        else:
+            return _first_matrix_step_njit(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
+                                           self.zero_ind, self.gpu_0)
 
     def second_matrix_step(self, rho, omega, omega2):
         """
@@ -1395,7 +1431,7 @@ class System:  # (SpectrumCalculator):
         else:
             self.gpu_0 = 0
             measurement_op = self.measurement_op
-            rho_prim_sum =  None
+            rho_prim_sum = None
             second_term_mat = None
             third_term_mat = None
 
@@ -1418,7 +1454,7 @@ class System:  # (SpectrumCalculator):
 
         if order == 4:
             self.calculate_order_four(omegas, n_states, rho, rho_prim_sum, spec_data, second_term_mat, third_term_mat,
-                                 enable_gpu, verbose, bar, cache_trispec)
+                                      enable_gpu, verbose, bar, cache_trispec)
 
         clear_cache_dict()
         return self.S[order]
