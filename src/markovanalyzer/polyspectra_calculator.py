@@ -886,11 +886,12 @@ def calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_state
 
 
 @njit(fastmath=True)
-def calculate_order_3_inner_loop_njit(counter, omegas, rho, spec_data, a_prim, eigvecs,
+def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs,
                                       eigvals, eigvecs_inv, zero_ind, gpu_0):
-    for ind_1, omega_1 in counter:
-        for ind_2, omega_2 in enumerate(omegas[ind_1:]):
-
+    for ind_1 in range(len(omegas)):
+        omega_1 = omegas[ind_1]
+        for ind_2 in omegas[ind_1:]:
+            omega_2 = omegas[ind_2]
             # Calculate all permutation for the trace_sum
             var = np.array([omega_1, omega_2, - omega_1 - omega_2])
             n = len(var)
@@ -904,7 +905,7 @@ def calculate_order_3_inner_loop_njit(counter, omegas, rho, spec_data, a_prim, e
             perms_counter = np.array([0])
 
             # Generate permutations
-            generate_permutations(var, 0, perms_counter, counter)
+            generate_permutations(var, 0, perms_counter, perms_counter)
 
             trace_sum = 0
             for omega in perms:
@@ -1242,7 +1243,7 @@ class System:  # (SpectrumCalculator):
                                                     self.gpu_0)
 
         else:
-            return calculate_order_3_inner_loop_njit(counter, omegas, rho, spec_data, self.A_prim,
+            return calculate_order_3_inner_loop_njit(omegas, rho, spec_data, self.A_prim,
                                                      self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
                                                      self.gpu_0)
 
@@ -1426,7 +1427,7 @@ class System:  # (SpectrumCalculator):
             print('Calculating bispectrum')
             counter = tqdm_notebook(enumerate(omegas), total=len(omegas))
         else:
-            counter = enumerate(omegas)
+            counter = omegas
 
         spec_data = self.calculate_order_3_inner_loop(counter, omegas, rho, spec_data, rho_prim_sum, n_states)
 
