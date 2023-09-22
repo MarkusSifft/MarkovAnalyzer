@@ -35,7 +35,7 @@
 import numpy as np
 from numpy.linalg import inv, eig
 from scipy.linalg import eig
-from numba import njit, prange, vectorize, guvectorize
+from numba import njit, prange
 
 from itertools import permutations
 from cachetools import cached
@@ -299,8 +299,7 @@ def _first_matrix_step_gpu(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, ze
 
 #@cached(cache=cache_dict['cache_first_matrix_step'],
 #        key=lambda rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(omega))
-#@njit(fastmath=True)
-@vectorize()
+@njit(fastmath=True)
 def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates first matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143. Used
@@ -386,8 +385,7 @@ def _second_matrix_step_gpu(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvec
 #@cached(cache=cache_dict['cache_second_matrix_step'],
 #        key=lambda rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
 #            omega, omega2))
-#@njit(fastmath=True)
-@vectorize()
+@njit(fastmath=True)
 def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
@@ -887,7 +885,7 @@ def calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_state
     return rho_prim_sum
 
 
-@njit(fastmath=True, parallel=True)
+@njit(fastmath=True)
 def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
 
     for ind_1 in range(len(omegas)):
@@ -911,21 +909,14 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, e
             generate_permutations(var, 0, perms, perms_counter)
 
             trace_sum = 0
-            # for perms_ind in prange(len(perms)):
-            #     omega = perms[perms_ind]
-            #     rho_prim = _first_matrix_step_njit(rho, omega[2] + omega[1], a_prim,
-            #                                        eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-            #     rho_prim = _second_matrix_step_njit(rho_prim, omega[1], omega[2] + omega[1], a_prim, eigvecs,
-            #                                         eigvals, eigvecs_inv, zero_ind, gpu_0)
-            #
-            #     trace_sum += rho_prim.sum()
+            for perms_ind in range(len(perms)):
+                omega = perms[perms_ind]
+                rho_prim = _first_matrix_step_njit(rho, omega[2] + omega[1], a_prim,
+                                                   eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+                rho_prim = _second_matrix_step_njit(rho_prim, omega[1], omega[2] + omega[1], a_prim, eigvecs,
+                                                    eigvals, eigvecs_inv, zero_ind, gpu_0)
 
-            rho_prims_first = _first_matrix_step_njit(rho, perms[:, 2] + perms[:, 1], a_prim,
-                                                      eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-            rho_prims_second = _second_matrix_step_njit(rho_prims_first, perms[:, 1], perms[:, 2] + perms[:, 1],
-                                                        a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-
-            trace_sum = rho_prims_second.sum(axis=0)
+                trace_sum += rho_prim.sum()
 
             spec_data[ind_1, ind_2 + ind_1] = trace_sum
 
