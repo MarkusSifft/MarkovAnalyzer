@@ -889,11 +889,10 @@ def calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_state
 
 def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs,
                                       eigvals, eigvecs_inv, zero_ind, gpu_0):
-    for ind_1 in range(len(omegas)):
-        omega_1 = omegas[ind_1]
-
-        for ind_2 in range(ind_1, len(omegas)):
-            omega_2 = omegas[ind_2]
+    ind_1 = 0
+    for omega_1 in omegas:
+        ind_2 = ind_1
+        for omega_2 in omegas[ind_1:]:
 
             print(ind_1, ind_2, ind_1+ind_2)
 
@@ -922,6 +921,9 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs,
                 trace_sum += rho_prim.sum()
 
             spec_data[ind_1, ind_2 + ind_1] = trace_sum
+
+            ind_2 += 1
+        ind_1 += 1
 
     return spec_data
 
