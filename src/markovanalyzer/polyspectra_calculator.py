@@ -448,11 +448,11 @@ def _matrix_step(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, 
     """
 
     if enable_gpu:
-        G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0)
+        G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
         rho_prim = af.matmul(G_prim, rho)
         out = af.matmul(a_prim, rho_prim)
     else:
-        G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0)
+        G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
         rho_prim = G_prim @ rho
         out = a_prim @ rho_prim
     return out
