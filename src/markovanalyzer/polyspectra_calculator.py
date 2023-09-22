@@ -126,9 +126,9 @@ def _fourier_g_prim_gpu(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     return Fourier_G
 
 
-@cached(cache=cache_dict['cache_fourier_g_prim'],
-        key=lambda nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
-            nu))
+#@cached(cache=cache_dict['cache_fourier_g_prim'],
+#        key=lambda nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
+#            nu))
 @njit(fastmath=True)
 def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
@@ -272,6 +272,7 @@ def _first_matrix_step_gpu(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, ze
     out = af.matmul(a_prim, rho_prim)
 
     return out
+
 
 @cached(cache=cache_dict['cache_first_matrix_step'],
         key=lambda rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(omega))
