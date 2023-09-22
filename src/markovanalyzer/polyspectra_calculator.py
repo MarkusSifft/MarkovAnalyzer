@@ -885,7 +885,7 @@ def calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_state
     return rho_prim_sum
 
 
-@njit(fastmath=True, parallel=False)
+@njit(fastmath=True, parallel=True)
 def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
 
     for ind_1 in prange(len(omegas)):
