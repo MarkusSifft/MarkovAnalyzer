@@ -845,6 +845,45 @@ def third_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
         return third_term_njit(omega1, omega2, omega3, s_k, eigvals)
 
 
+def calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_states, a_prim, eigvecs, eigvals,
+                                     eigvecs_inv, zero_ind, gpu_0):
+    for ind_1, omega_1 in counter:
+        for ind_2, omega_2 in enumerate(omegas[ind_1:]):
+            # Calculate all permutation for the trace_sum
+            var = np.array([omega_1, omega_2, - omega_1 - omega_2])
+            perms = list(permutations(var))
+            for omega in perms:
+                rho_prim = _first_matrix_step_gpu(rho, omega[2] + omega[1],
+                                                  a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+                rho_prim = _second_matrix_step_gpu(rho_prim, omega[1], omega[2] + omega[1], a_prim, eigvecs,
+                                                   eigvals, eigvecs_inv, zero_ind, gpu_0)
+
+                rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1, d1=1, d2=n_states)
+    return rho_prim_sum
+
+
+@njit(fastmath=True)
+def calculate_order_3_inner_loop_njit(counter, omegas, rho, spec_data, a_prim, eigvecs,
+                                      eigvals, eigvecs_inv, zero_ind, gpu_0):
+    for ind_1, omega_1 in counter:
+        for ind_2, omega_2 in enumerate(omegas[ind_1:]):
+            # Calculate all permutation for the trace_sum
+            var = np.array([omega_1, omega_2, - omega_1 - omega_2])
+            perms = list(permutations(var))
+            trace_sum = 0
+            for omega in perms:
+                rho_prim = _first_matrix_step_njit(rho, omega[2] + omega[1], a_prim,
+                                                   eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+                rho_prim = _second_matrix_step_njit(rho_prim, omega[1], omega[2] + omega[1], a_prim, eigvecs,
+                                                    eigvals, eigvecs_inv, zero_ind, gpu_0)
+
+                trace_sum += rho_prim.sum()
+
+            spec_data[ind_1, ind_2 + ind_1] = trace_sum
+
+    return spec_data
+
+
 # ------- Hepler functions ----------
 
 
@@ -1140,11 +1179,13 @@ class System:  # (SpectrumCalculator):
         """
 
         if self.enable_gpu:
-            return _second_matrix_step_gpu(rho, omega, omega2, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
-                                       self.zero_ind, self.gpu_0)
+            return _second_matrix_step_gpu(rho, omega, omega2, self.A_prim, self.eigvecs, self.eigvals,
+                                           self.eigvecs_inv,
+                                           self.zero_ind, self.gpu_0)
         else:
-            return _second_matrix_step_njit(rho, omega, omega2, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
-                                       self.zero_ind, self.gpu_0)
+            return _second_matrix_step_njit(rho, omega, omega2, self.A_prim, self.eigvecs, self.eigvals,
+                                            self.eigvecs_inv,
+                                            self.zero_ind, self.gpu_0)
 
     def matrix_step(self, rho, omega):
         """
@@ -1153,10 +1194,21 @@ class System:  # (SpectrumCalculator):
 
         if self.enable_gpu:
             return _matrix_step_gpu(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
-                                self.zero_ind, self.gpu_0)
+                                    self.zero_ind, self.gpu_0)
         else:
             return _matrix_step_njit(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
-                                self.zero_ind, self.gpu_0)
+                                     self.zero_ind, self.gpu_0)
+
+    def calculate_order_3_inner_loop(self, counter, omegas, rho, rho_prim_sum, n_states):
+        if self.enable_gpu:
+            return calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_states, self.A_prim,
+                                                    self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
+                                                    self.gpu_0)
+
+        else:
+            return calculate_order_3_inner_loop_njit(counter, omegas, rho, rho_prim_sum, n_states, self.A_prim,
+                                                     self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
+                                                     self.gpu_0)
 
     def plot(self, plot_orders=(2, 3, 4)):
         config = PlotConfig(plot_orders=plot_orders, s2_f=self.freq[2], s2_data=self.S[2], s3_f=self.freq[3],
@@ -1339,23 +1391,8 @@ class System:  # (SpectrumCalculator):
             counter = tqdm_notebook(enumerate(omegas), total=len(omegas))
         else:
             counter = enumerate(omegas)
-        for ind_1, omega_1 in counter:
-            for ind_2, omega_2 in enumerate(omegas[ind_1:]):
-                # Calculate all permutation for the trace_sum
-                var = np.array([omega_1, omega_2, - omega_1 - omega_2])
-                perms = list(permutations(var))
-                trace_sum = 0
-                for omega in perms:
-                    rho_prim = self.first_matrix_step(rho, omega[2] + omega[1])
-                    rho_prim = self.second_matrix_step(rho_prim, omega[1], omega[2] + omega[1])
-                    if enable_gpu:
-                        rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1, d1=1,
-                                                                                 d2=n_states)
-                    else:
-                        trace_sum += rho_prim.sum()
 
-                if not enable_gpu:
-                    spec_data[ind_1, ind_2 + ind_1] = trace_sum
+        spec_data = self.calculate_order_3_inner_loop(counter, omegas, rho, rho_prim_sum, n_states)
 
         if enable_gpu:
             spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
