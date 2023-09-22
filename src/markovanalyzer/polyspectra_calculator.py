@@ -51,7 +51,30 @@ from arrayfire.interop import from_ndarray as to_gpu
 from signalsnap.spectrum_plotter import SpectrumPlotter
 from signalsnap.plot_config import PlotConfig
 
+
 #  from pympler import asizeof
+
+
+@njit
+def factorial(n):
+    result = 1
+    for i in range(1, n + 1):
+        result *= i
+    return result
+
+
+@njit
+def generate_permutations(arr, index, result, counter):
+    n = len(arr)
+    if index == n - 1:
+        result[counter[0], :] = arr
+        counter[0] += 1
+        return
+    for i in range(index, n):
+        arr[i], arr[index] = arr[index], arr[i]
+        generate_permutations(arr, index + 1, result, counter)
+        arr[i], arr[index] = arr[index], arr[i]
+
 
 # ------ new cache_fourier_g_prim implementation -------
 # Initial maxsize
@@ -867,9 +890,22 @@ def calculate_order_3_inner_loop_njit(counter, omegas, rho, spec_data, a_prim, e
                                       eigvals, eigvecs_inv, zero_ind, gpu_0):
     for ind_1, omega_1 in counter:
         for ind_2, omega_2 in enumerate(omegas[ind_1:]):
+
             # Calculate all permutation for the trace_sum
             var = np.array([omega_1, omega_2, - omega_1 - omega_2])
-            perms = list(permutations(var))
+            n = len(var)
+            num_permutations = factorial(n)
+            result_shape = (num_permutations, n)
+
+            # Pre-allocate a NumPy array to hold the results
+            perms = np.zeros(result_shape, dtype=var.dtype)
+
+            # Counter for keeping track of how many permutations have been stored
+            perms_counter = np.array([0])
+
+            # Generate permutations
+            generate_permutations(var, 0, perms_counter, counter)
+
             trace_sum = 0
             for omega in perms:
                 rho_prim = _first_matrix_step_njit(rho, omega[2] + omega[1], a_prim,
