@@ -1017,8 +1017,8 @@ class System:  # (SpectrumCalculator):
         fig = plot.plot()
         return fig
 
-    def calculate_spectrum(self, f_data, order_in, bar=True, verbose=False,
-                               correction_only=False, beta_offset=True, enable_gpu=False, cache_trispec=True):
+    def calculate_spectrum(self, f_data, order_in, bar=True, verbose=False, beta_offset=True,
+                           enable_gpu=False, cache_trispec=True):
 
         if order_in == 'all':
             orders = [1, 2, 3, 4]
@@ -1027,7 +1027,7 @@ class System:  # (SpectrumCalculator):
 
         for order in orders:
             self.calculate_one_spectrum(f_data, order, bar=bar, verbose=verbose,
-                               correction_only=correction_only, beta_offset=beta_offset, enable_gpu=enable_gpu, cache_trispec=cache_trispec)
+                                        beta_offset=beta_offset, enable_gpu=enable_gpu, cache_trispec=cache_trispec)
 
     def replicate_and_extend_rates(self, rates):
         """
@@ -1142,9 +1142,159 @@ class System:  # (SpectrumCalculator):
 
         return extended_rates
 
+    def calculate_order_one(self, measurement_op, enable_gpu, bar):
+        if bar:
+            print('Calculating first order')
+        if enable_gpu:
+            rho = af.matmul(measurement_op, self.rho_steady)
+            self.S[1] = af.algorithm.sum(rho)
+        else:
+            rho = measurement_op @ self.rho_steady
+            self.S[1] = rho.sum()
 
-    def calculate_one_spectrum(self, f_data, order, bar=True, verbose=False,
-                               correction_only=False, beta_offset=True, enable_gpu=False, cache_trispec=True):
+    def calculate_order_two(self, omegas, rho, rho_prim_sum, spec_data, enable_gpu, beta_offset, bar):
+        if bar:
+            print('Calculating power spectrum')
+            counter = tqdm_notebook(enumerate(omegas), total=len(omegas))
+        else:
+            counter = enumerate(omegas)
+        for (i, omega) in counter:
+            rho_prim = self.first_matrix_step(rho, omega)  # measurement_op' * G'
+            rho_prim_neg = self.first_matrix_step(rho, -omega)
+
+            if enable_gpu:
+                rho_prim_sum[i, :] = rho_prim + rho_prim_neg
+            else:
+                spec_data[i] = rho_prim.sum() + rho_prim_neg.sum()
+
+        if enable_gpu:
+            spec_data = af.algorithm.sum(rho_prim_sum, dim=1).to_ndarray()
+
+        order = 2
+        self.S[order] = spec_data
+        self.S[order] = self.S[order]
+        if beta_offset:
+            self.S[order] += 1 / 4
+
+    def calculate_order_three(self, omegas, n_states, rho, rho_prim_sum, spec_data, enable_gpu, verbose, bar):
+
+        if bar:
+            print('Calculating bispectrum')
+            counter = tqdm_notebook(enumerate(omegas), total=len(omegas))
+        else:
+            counter = enumerate(omegas)
+        for ind_1, omega_1 in counter:
+            for ind_2, omega_2 in enumerate(omegas[ind_1:]):
+                # Calculate all permutation for the trace_sum
+                var = np.array([omega_1, omega_2, - omega_1 - omega_2])
+                perms = list(permutations(var))
+                trace_sum = 0
+                for omega in perms:
+                    rho_prim = self.first_matrix_step(rho, omega[2] + omega[1])
+                    rho_prim = self.second_matrix_step(rho_prim, omega[1], omega[2] + omega[1])
+                    if enable_gpu:
+                        rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1, d1=1,
+                                                                                 d2=n_states)
+                    else:
+                        trace_sum += rho_prim.sum()
+
+                if not enable_gpu:
+                    spec_data[ind_1, ind_2 + ind_1] = trace_sum
+
+        if enable_gpu:
+            spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
+
+        spec_data[(spec_data == 0).nonzero()] = spec_data.T[(spec_data == 0).nonzero()]
+
+        if np.max(np.abs(np.imag(np.real_if_close(_full_bispec(spec_data))))) > 0 and verbose:
+            print('Bispectrum might have an imaginary part')
+
+        order = 3
+        self.S[order] = _full_bispec(spec_data)
+
+    def calculate_order_four(self, omegas, n_states, rho, rho_prim_sum, spec_data, second_term_mat, third_term_mat,
+                             enable_gpu, verbose, bar, cache_trispec):
+        if bar:
+            print('Calculating correlation spectrum')
+            counter = tqdm_notebook(enumerate(omegas), total=len(omegas))
+        else:
+            counter = enumerate(omegas)
+
+        if verbose:
+            print('Calculating small s')
+        if enable_gpu:
+            gpu_zero_mat = to_gpu(np.zeros_like(self.eigvecs))  # Generate the zero array only ones
+        else:
+            gpu_zero_mat = 0
+        #  gpu_ones_arr = to_gpu(0*1j + np.ones(len(self.eigvecs[0])))
+        s_k = small_s(self.rho_steady, self.A_prim, self.eigvecs, self.eigvecs_inv,
+                      enable_gpu, self.zero_ind, gpu_zero_mat)
+
+        if verbose:
+            print('Done')
+
+        self.s_k = s_k
+
+        for ind_1, omega_1 in counter:
+
+            for ind_2, omega_2 in enumerate(omegas[ind_1:]):
+                # for ind_2, omega_2 in enumerate(omegas[:ind_1+1]):
+
+                # Calculate all permutation for the trace_sum
+                var = np.array([omega_1, -omega_1, omega_2, -omega_2])
+                perms = list(permutations(var))
+                trace_sum = 0
+                second_term_sum = 0
+                third_term_sum = 0
+
+                for omega in perms:
+
+                    if cache_trispec:
+                        rho_prim = self.first_matrix_step(rho, omega[1] + omega[2] + omega[3])
+                        rho_prim = self.second_matrix_step(rho_prim, omega[2] + omega[3],
+                                                           omega[1] + omega[2] + omega[3])
+                    else:
+                        rho_prim = self.matrix_step(rho, omega[1] + omega[2] + omega[3])
+                        rho_prim = self.matrix_step(rho_prim, omega[2] + omega[3])
+
+                    rho_prim = self.matrix_step(rho_prim, omega[3])
+
+                    if enable_gpu:
+
+                        rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1,
+                                                                                 d1=1,
+                                                                                 d2=n_states)
+                        second_term_mat[ind_1, ind_2 + ind_1] += second_term(omega[1], omega[2], omega[3], s_k,
+                                                                             self.eigvals, enable_gpu)
+                        third_term_mat[ind_1, ind_2 + ind_1] += third_term(omega[1], omega[2], omega[3], s_k,
+                                                                           self.eigvals, enable_gpu)
+                    else:
+
+                        trace_sum += rho_prim.sum()
+                        second_term_sum += second_term(omega[1], omega[2], omega[3], s_k, self.eigvals,
+                                                       enable_gpu)
+                        third_term_sum += third_term(omega[1], omega[2], omega[3], s_k, self.eigvals,
+                                                     enable_gpu)
+
+                if not enable_gpu:
+                    spec_data[ind_1, ind_2 + ind_1] = second_term_sum + third_term_sum + trace_sum
+                    spec_data[ind_2 + ind_1, ind_1] = second_term_sum + third_term_sum + trace_sum
+
+        if enable_gpu:
+            spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
+            spec_data += af.algorithm.sum(af.algorithm.sum(second_term_mat + third_term_mat, dim=3),
+                                          dim=2).to_ndarray()
+
+            spec_data[(spec_data == 0).nonzero()] = spec_data.T[(spec_data == 0).nonzero()]
+
+        if np.max(np.abs(np.imag(np.real_if_close(_full_trispec(spec_data))))) > 0 and verbose:
+            print('Trispectrum might have an imaginary part')
+
+        order = 4
+        self.S[order] = _full_trispec(spec_data)
+
+    def calculate_one_spectrum(self, f_data, order, bar=True, verbose=False, beta_offset=True,
+                               enable_gpu=False, cache_trispec=True):
         """
         Calculates analytic polyspectra (order 2 to 4) as described in 10.1103/PhysRevB.98.205143
         and 10.1103/PhysRevB.102.119901
@@ -1255,160 +1405,17 @@ class System:  # (SpectrumCalculator):
         # update_cache_size('cache_third_term', rho[0], enable_gpu)
 
         if order == 1:
-            if bar:
-                print('Calculating first order')
-            if enable_gpu:
-                rho = af.matmul(measurement_op, self.rho_steady)
-                self.S[order] = af.algorithm.sum(rho)
-            else:
-                rho = measurement_op @ self.rho_steady
-                self.S[order] = rho.sum()
+            self.calculate_order_one(measurement_op, enable_gpu, bar)
 
         if order == 2:
-            if bar:
-                print('Calculating power spectrum')
-                counter = tqdm_notebook(enumerate(omegas), total=len(omegas))
-            else:
-                counter = enumerate(omegas)
-            for (i, omega) in counter:
-                rho_prim = self.first_matrix_step(rho, omega)  # measurement_op' * G'
-                rho_prim_neg = self.first_matrix_step(rho, -omega)
+            self.calculate_order_two(omegas, rho, rho_prim_sum, spec_data, enable_gpu, beta_offset, bar)
 
-                if enable_gpu:
-                    rho_prim_sum[i, :] = rho_prim + rho_prim_neg
-                else:
-                    spec_data[i] = rho_prim.sum() + rho_prim_neg.sum()
-
-            if enable_gpu:
-                spec_data = af.algorithm.sum(rho_prim_sum, dim=1).to_ndarray()
-
-            self.S[order] = spec_data
-            self.S[order] = self.S[order]
-            if beta_offset:
-                self.S[order] += 1 / 4
         if order == 3:
-            if bar:
-                print('Calculating bispectrum')
-                counter = tqdm_notebook(enumerate(omegas), total=len(omegas))
-            else:
-                counter = enumerate(omegas)
-            for ind_1, omega_1 in counter:
-                for ind_2, omega_2 in enumerate(omegas[ind_1:]):
-                    # Calculate all permutation for the trace_sum
-                    var = np.array([omega_1, omega_2, - omega_1 - omega_2])
-                    perms = list(permutations(var))
-                    trace_sum = 0
-                    for omega in perms:
-                        rho_prim = self.first_matrix_step(rho, omega[2] + omega[1])
-                        rho_prim = self.second_matrix_step(rho_prim, omega[1], omega[2] + omega[1])
-                        if enable_gpu:
-                            rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1, d1=1,
-                                                                                     d2=n_states)
-                        else:
-                            trace_sum += rho_prim.sum()
-
-                    if not enable_gpu:
-                        spec_data[ind_1, ind_2 + ind_1] = trace_sum
-
-            if enable_gpu:
-                spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
-
-            spec_data[(spec_data == 0).nonzero()] = spec_data.T[(spec_data == 0).nonzero()]
-
-            if np.max(np.abs(np.imag(np.real_if_close(_full_bispec(spec_data))))) > 0 and verbose:
-                print('Bispectrum might have an imaginary part')
-
-            self.S[order] = _full_bispec(spec_data)
+            self.calculate_order_three(omegas, n_states, rho, rho_prim_sum, spec_data, enable_gpu, verbose, bar)
 
         if order == 4:
-            if bar:
-                print('Calculating correlation spectrum')
-                counter = tqdm_notebook(enumerate(omegas), total=len(omegas))
-            else:
-                counter = enumerate(omegas)
-
-            if verbose:
-                print('Calculating small s')
-            if enable_gpu:
-                gpu_zero_mat = to_gpu(np.zeros_like(self.eigvecs))  # Generate the zero array only ones
-            else:
-                gpu_zero_mat = 0
-            #  gpu_ones_arr = to_gpu(0*1j + np.ones(len(self.eigvecs[0])))
-            s_k = small_s(self.rho_steady, self.A_prim, self.eigvecs, self.eigvecs_inv,
-                          enable_gpu, self.zero_ind, gpu_zero_mat)
-
-            if verbose:
-                print('Done')
-
-            self.s_k = s_k
-
-            for ind_1, omega_1 in counter:
-
-                for ind_2, omega_2 in enumerate(omegas[ind_1:]):
-                    # for ind_2, omega_2 in enumerate(omegas[:ind_1+1]):
-
-                    # Calculate all permutation for the trace_sum
-                    var = np.array([omega_1, -omega_1, omega_2, -omega_2])
-                    perms = list(permutations(var))
-                    trace_sum = 0
-                    second_term_sum = 0
-                    third_term_sum = 0
-
-                    if correction_only:
-
-                        for omega in perms:
-                            second_term_sum += second_term(omega[1], omega[2], omega[3], s_k, self.eigvals)
-                            third_term_sum += third_term(omega[1], omega[2], omega[3], s_k, self.eigvals)
-
-                        spec_data[ind_1, ind_2 + ind_1] = second_term_sum + third_term_sum
-                        spec_data[ind_2 + ind_1, ind_1] = second_term_sum + third_term_sum
-
-                    else:
-
-                        for omega in perms:
-
-                            if cache_trispec:
-                                rho_prim = self.first_matrix_step(rho, omega[1] + omega[2] + omega[3])
-                                rho_prim = self.second_matrix_step(rho_prim, omega[2] + omega[3],
-                                                                   omega[1] + omega[2] + omega[3])
-                            else:
-                                rho_prim = self.matrix_step(rho, omega[1] + omega[2] + omega[3])
-                                rho_prim = self.matrix_step(rho_prim, omega[2] + omega[3])
-
-                            rho_prim = self.matrix_step(rho_prim, omega[3])
-
-                            if enable_gpu:
-
-                                rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1,
-                                                                                         d1=1,
-                                                                                         d2=n_states)
-                                second_term_mat[ind_1, ind_2 + ind_1] += second_term(omega[1], omega[2], omega[3], s_k,
-                                                                                     self.eigvals, enable_gpu)
-                                third_term_mat[ind_1, ind_2 + ind_1] += third_term(omega[1], omega[2], omega[3], s_k,
-                                                                                   self.eigvals, enable_gpu)
-                            else:
-
-                                trace_sum += rho_prim.sum()
-                                second_term_sum += second_term(omega[1], omega[2], omega[3], s_k, self.eigvals,
-                                                               enable_gpu)
-                                third_term_sum += third_term(omega[1], omega[2], omega[3], s_k, self.eigvals,
-                                                             enable_gpu)
-
-                        if not enable_gpu:
-                            spec_data[ind_1, ind_2 + ind_1] = second_term_sum + third_term_sum + trace_sum
-                            spec_data[ind_2 + ind_1, ind_1] = second_term_sum + third_term_sum + trace_sum
-
-            if enable_gpu:
-                spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
-                spec_data += af.algorithm.sum(af.algorithm.sum(second_term_mat + third_term_mat, dim=3),
-                                              dim=2).to_ndarray()
-
-                spec_data[(spec_data == 0).nonzero()] = spec_data.T[(spec_data == 0).nonzero()]
-
-            if np.max(np.abs(np.imag(np.real_if_close(_full_trispec(spec_data))))) > 0 and verbose:
-                print('Trispectrum might have an imaginary part')
-
-            self.S[order] = _full_trispec(spec_data)
+            self.calculate_order_four(omegas, n_states, rho, rho_prim_sum, spec_data, second_term_mat, third_term_mat,
+                                 enable_gpu, verbose, bar, cache_trispec)
 
         clear_cache_dict()
         return self.S[order]
