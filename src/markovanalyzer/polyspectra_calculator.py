@@ -355,11 +355,11 @@ def _second_matrix_step(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_in
     _ = omega2
 
     if enable_gpu:
-        G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0)
+        G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
         rho_prim = af.matmul(G_prim, rho)
         out = af.matmul(a_prim, rho_prim)
     else:
-        G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0)
+        G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
         rho_prim = G_prim @ rho
         out = a_prim @ rho_prim
 
