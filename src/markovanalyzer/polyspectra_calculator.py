@@ -895,6 +895,8 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs,
         for ind_2 in range(ind_1, len(omegas)):
             omega_2 = omegas[ind_2]
 
+            print(ind_1, ind_2, ind_1+ind_2)
+
             # Calculate all permutation for the trace_sum
             var = np.array([omega_1, omega_2, - omega_1 - omega_2])
             n = len(var)
