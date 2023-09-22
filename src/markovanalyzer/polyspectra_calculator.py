@@ -1199,14 +1199,14 @@ class System:  # (SpectrumCalculator):
             return _matrix_step_njit(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
                                      self.zero_ind, self.gpu_0)
 
-    def calculate_order_3_inner_loop(self, counter, omegas, rho, rho_prim_sum, n_states):
+    def calculate_order_3_inner_loop(self, counter, omegas, rho, spec_data, rho_prim_sum, n_states):
         if self.enable_gpu:
             return calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_states, self.A_prim,
                                                     self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
                                                     self.gpu_0)
 
         else:
-            return calculate_order_3_inner_loop_njit(counter, omegas, rho, rho_prim_sum, n_states, self.A_prim,
+            return calculate_order_3_inner_loop_njit(counter, omegas, rho, spec_data, self.A_prim,
                                                      self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
                                                      self.gpu_0)
 
@@ -1392,7 +1392,7 @@ class System:  # (SpectrumCalculator):
         else:
             counter = enumerate(omegas)
 
-        spec_data = self.calculate_order_3_inner_loop(counter, omegas, rho, rho_prim_sum, n_states)
+        spec_data = self.calculate_order_3_inner_loop(counter, omegas, rho, spec_data, rho_prim_sum, n_states)
 
         if enable_gpu:
             spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
