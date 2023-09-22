@@ -885,13 +885,15 @@ def calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_state
     return rho_prim_sum
 
 
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs,
                                       eigvals, eigvecs_inv, zero_ind, gpu_0):
     for ind_1 in range(len(omegas)):
         omega_1 = omegas[ind_1]
+
         for ind_2 in range(ind_1, len(omegas)):
             omega_2 = omegas[ind_2]
+
             # Calculate all permutation for the trace_sum
             var = np.array([omega_1, omega_2, - omega_1 - omega_2])
             n = len(var)
