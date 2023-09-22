@@ -891,7 +891,7 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs,
                                       eigvals, eigvecs_inv, zero_ind, gpu_0):
     ind_1 = 0
     for omega_1 in omegas:
-        ind_2 = ind_1
+        ind_2 = 0
         for omega_2 in omegas[ind_1:]:
 
             print(ind_1, ind_2, ind_1+ind_2)
