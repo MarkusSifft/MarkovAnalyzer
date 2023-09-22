@@ -339,9 +339,9 @@ def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, z
 
 
 # ------ can be cached for large systems --------
-#@cached(cache=cache_dict['cache_second_matrix_step'],
-#        key=lambda rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
-#            omega, omega2))
+@cached(cache=cache_dict['cache_second_matrix_step'],
+        key=lambda rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
+            omega, omega2))
 def _second_matrix_step_gpu(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
@@ -382,9 +382,9 @@ def _second_matrix_step_gpu(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvec
     return out
 
 
-@cached(cache=cache_dict['cache_second_matrix_step'],
-        key=lambda rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
-            omega, omega2))
+#@cached(cache=cache_dict['cache_second_matrix_step'],
+#        key=lambda rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
+#            omega, omega2))
 @njit(fastmath=True)
 def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
