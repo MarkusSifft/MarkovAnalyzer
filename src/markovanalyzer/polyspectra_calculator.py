@@ -126,7 +126,7 @@ def _fourier_g_prim_gpu(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     return Fourier_G
 
 
-#@cached(cache=cache_dict['cache_fourier_g_prim'],
+# @cached(cache=cache_dict['cache_fourier_g_prim'],
 #        key=lambda nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
 #            nu))
 @njit(fastmath=True)
@@ -317,9 +317,9 @@ def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, z
 
 # ------ can be cached for large systems --------
 @cached(cache=cache_dict['cache_second_matrix_step'],
-        key=lambda rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0: hashkey(
+        key=lambda rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
             omega, omega2))
-def _second_matrix_step(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0):
+def _second_matrix_step_gpu(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
     for the calculation of bispectrum.
@@ -352,16 +352,53 @@ def _second_matrix_step(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_in
         second matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
     """
 
-    _ = omega2
+    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = af.matmul(G_prim, rho)
+    out = af.matmul(a_prim, rho_prim)
 
-    if enable_gpu:
-        G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-        rho_prim = af.matmul(G_prim, rho)
-        out = af.matmul(a_prim, rho_prim)
-    else:
-        G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-        rho_prim = G_prim @ rho
-        out = a_prim @ rho_prim
+    return out
+
+
+@cached(cache=cache_dict['cache_second_matrix_step'],
+        key=lambda rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
+            omega, omega2))
+@njit(fastmath=True)
+def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
+    """
+    Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
+    for the calculation of bispectrum.
+    Parameters
+    ----------
+    rho : array
+        A @ Steadystate desity matrix of the system
+    omega : float
+        Desired frequency
+    omega2 : float
+        Frequency used in :func:_first_matrix_step
+    a_prim : array
+        Super operator A' as defined in 10.1103/PhysRevB.98.205143
+    eigvecs : array
+        Eigenvectors of the Liouvillian
+    eigvals : array
+        Eigenvalues of the Liouvillian
+    eigvecs_inv : array
+        The inverse eigenvectors of the Liouvillian
+    enable_gpu : bool
+        Set if calculations should be performed on GPU
+    zero_ind : int
+        Index of steady state in \mathcal{G}
+    gpu_0 : int
+        Pointer to presaved zero on GPU. Avoids unnecessary transfers of zeros from CPU to GPU
+
+    Returns
+    -------
+    out : array
+        second matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
+    """
+
+    G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = G_prim @ rho
+    out = a_prim @ rho_prim
 
     return out
 
@@ -369,7 +406,7 @@ def _second_matrix_step(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_in
 @cached(cache=cache_dict['cache_third_matrix_step'],
         key=lambda rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind,
                    gpu_0: hashkey(omega, omega2))
-def _third_matrix_step(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0):
+def _third_matrix_step_gpu(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
     for the calculation of bispectrum.
@@ -401,22 +438,59 @@ def _third_matrix_step(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eig
     out : array
         Third matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
     """
-    _ = omega2
-    _ = omega3
 
-    if enable_gpu:
-        G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0)
-        rho_prim = af.matmul(G_prim, rho)
-        out = af.matmul(a_prim, rho_prim)
-    else:
-        G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0)
-        rho_prim = G_prim @ rho
-        out = a_prim @ rho_prim
+    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = af.matmul(G_prim, rho)
+    out = af.matmul(a_prim, rho_prim)
 
     return out
 
 
-def _matrix_step(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind, gpu_0):
+@cached(cache=cache_dict['cache_third_matrix_step'],
+        key=lambda rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind,
+                   gpu_0: hashkey(omega, omega2))
+@njit(fastmath=True)
+def _third_matrix_step_njit(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
+    """
+    Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
+    for the calculation of bispectrum.
+    Parameters
+    ----------
+    rho : array
+        A @ Steadystate desity matrix of the system
+    omega : float
+        Desired frequency
+    omega2 : float
+        Frequency used in :func:_first_matrix_step
+    a_prim : array
+        Super operator A' as defined in 10.1103/PhysRevB.98.205143
+    eigvecs : array
+        Eigenvectors of the Liouvillian
+    eigvals : array
+        Eigenvalues of the Liouvillian
+    eigvecs_inv : array
+        The inverse eigenvectors of the Liouvillian
+    enable_gpu : bool
+        Set if calculations should be performed on GPU
+    zero_ind : int
+        Index of steady state in \mathcal{G}
+    gpu_0 : int
+        Pointer to presaved zero on GPU. Avoids unnecessary transfers of zeros from CPU to GPU
+
+    Returns
+    -------
+    out : array
+        Third matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
+    """
+
+    G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = G_prim @ rho
+    out = a_prim @ rho_prim
+
+    return out
+
+
+def _matrix_step_gpu(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates one matrix multiplication in Eqs. 109 in 10.1103/PhysRevB.98.205143. Used
     for the calculation of trispectrum.
@@ -447,14 +521,49 @@ def _matrix_step(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, 
         output of one matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
     """
 
-    if enable_gpu:
-        G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-        rho_prim = af.matmul(G_prim, rho)
-        out = af.matmul(a_prim, rho_prim)
-    else:
-        G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-        rho_prim = G_prim @ rho
-        out = a_prim @ rho_prim
+    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = af.matmul(G_prim, rho)
+    out = af.matmul(a_prim, rho_prim)
+
+    return out
+
+
+@njit(fastmath=True)
+def _matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
+    """
+    Calculates one matrix multiplication in Eqs. 109 in 10.1103/PhysRevB.98.205143. Used
+    for the calculation of trispectrum.
+    Parameters
+    ----------
+    rho : array
+        A @ Steadystate desity matrix of the system
+    omega : float
+        Desired frequency
+    a_prim : array
+        Super operator A' as defined in 10.1103/PhysRevB.98.205143
+    eigvecs : array
+        Eigenvectors of the Liouvillian
+    eigvals : array
+        Eigenvalues of the Liouvillian
+    eigvecs_inv : array
+        The inverse eigenvectors of the Liouvillian
+    enable_gpu : bool
+        Set if calculations should be performed on GPU
+    zero_ind : int
+        Index of steady state in \mathcal{G}
+    gpu_0 : int
+        Pointer to presaved zero on GPU. Avoids unnecessary transfers of zeros from CPU to GPU
+
+    Returns
+    -------
+    out : array
+        output of one matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
+    """
+
+    G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = G_prim @ rho
+    out = a_prim @ rho_prim
+
     return out
 
 
@@ -1029,15 +1138,25 @@ class System:  # (SpectrumCalculator):
         """
         Helper method to move function out of the class. njit is not working within classes
         """
-        return _second_matrix_step(rho, omega, omega2, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
-                                   self.enable_gpu, self.zero_ind, self.gpu_0)
+
+        if self.enable_gpu:
+            return _second_matrix_step_gpu(rho, omega, omega2, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
+                                       self.zero_ind, self.gpu_0)
+        else:
+            return _second_matrix_step_njit(rho, omega, omega2, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
+                                       self.zero_ind, self.gpu_0)
 
     def matrix_step(self, rho, omega):
         """
         Helper method to move function out of the class. njit is not working within classes
         """
-        return _matrix_step(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
-                            self.enable_gpu, self.zero_ind, self.gpu_0)
+
+        if self.enable_gpu:
+            return _matrix_step_gpu(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
+                                self.zero_ind, self.gpu_0)
+        else:
+            return _matrix_step_njit(rho, omega, self.A_prim, self.eigvecs, self.eigvals, self.eigvecs_inv,
+                                self.zero_ind, self.gpu_0)
 
     def plot(self, plot_orders=(2, 3, 4)):
         config = PlotConfig(plot_orders=plot_orders, s2_f=self.freq[2], s2_data=self.S[2], s3_f=self.freq[3],
