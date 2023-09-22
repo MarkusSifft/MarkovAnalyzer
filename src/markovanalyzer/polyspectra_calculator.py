@@ -905,7 +905,7 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs,
             perms_counter = np.array([0])
 
             # Generate permutations
-            generate_permutations(var, 0, perms_counter, perms_counter)
+            generate_permutations(var, 0, perms, perms_counter)
 
             trace_sum = 0
             for omega in perms:
