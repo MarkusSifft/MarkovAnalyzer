@@ -35,7 +35,7 @@
 import numpy as np
 from numpy.linalg import inv, eig
 from scipy.linalg import eig
-from numba import njit
+from numba import njit, prange
 
 from itertools import permutations
 from cachetools import cached
@@ -885,13 +885,13 @@ def calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_state
     return rho_prim_sum
 
 
-@njit(fastmath=True)
+@njit(fastmath=True, parallel=False)
 def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs,
                                       eigvals, eigvecs_inv, zero_ind, gpu_0):
-    ind_1 = 0
-    for omega_1 in omegas:
-        ind_2 = 0
-        for omega_2 in omegas[ind_1:]:
+    for ind_1 in prange(len(omegas)):
+        omega_1 = omegas[ind_1]
+        for ind_2 in prange(len(omegas)-ind_1):
+            omega_2 = omegas[ind_2]
 
             # Calculate all permutation for the trace_sum
             var = np.array([omega_1, omega_2, - omega_1 - omega_2])
@@ -918,9 +918,6 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs,
                 trace_sum += rho_prim.sum()
 
             spec_data[ind_1, ind_2 + ind_1] = trace_sum
-
-            ind_2 += 1
-        ind_1 += 1
 
     return spec_data
 
