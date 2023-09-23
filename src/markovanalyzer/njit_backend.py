@@ -23,7 +23,7 @@ def generate_permutations(arr, index, result, counter):
         arr[i], arr[index] = arr[index], arr[i]
 
 
-@njit(fastmath=True)
+@njit("complex128[:,:](float64, complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=True)
 def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates the fourier transform of \mathcal{G'} as defined in 10.1103/PhysRevB.98.205143
