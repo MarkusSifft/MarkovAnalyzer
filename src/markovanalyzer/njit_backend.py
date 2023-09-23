@@ -63,16 +63,17 @@ def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     diagonal[~small_indices] = 1 / (-eigvals[~small_indices] - 1j * nu)
     diagonal[zero_ind] = 0
 
-    #eigvecs = np.ascontiguousarray(eigvecs)
-    #diagonal = np.ascontiguousarray(np.diag(diagonal))
-    #eigvecs_inv = np.ascontiguousarray(eigvecs_inv)
+    eigvecs = np.ascontiguousarray(eigvecs)
+    diagonal = np.ascontiguousarray(np.diag(diagonal))
+    eigvecs_inv = np.ascontiguousarray(eigvecs_inv)
 
     Fourier_G = eigvecs @ diagonal @ eigvecs_inv
 
     return Fourier_G
 
 
-@njit("complex128[:,:](complex128[:], float64, complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=True)
+#@njit("complex128[:,:](complex128[:], float64, complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=True)
+@njit(fastmath=True)
 def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates first matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143. Used
@@ -105,8 +106,8 @@ def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, z
     """
 
     G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    #G_prim = np.ascontiguousarray(G_prim)
-    #rho = np.ascontiguousarray(rho)
+    G_prim = np.ascontiguousarray(G_prim)
+    rho = np.ascontiguousarray(rho)
     rho_prim = G_prim @ rho
     out = a_prim @ rho_prim
 
