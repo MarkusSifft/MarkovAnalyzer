@@ -72,7 +72,7 @@ def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     return Fourier_G
 
 
-#@njit("complex128[:,:](complex128[:,:], float64, complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=True)
+@njit("complex128[:,:](complex128[:], float64, complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=True)
 def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates first matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143. Used
@@ -104,8 +104,6 @@ def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, z
         First matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
     """
 
-    print(rho.dtype, rho.shape)
-    print(a_prim.dtype, a_prim.shape)
     G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
     G_prim = np.ascontiguousarray(G_prim)
     rho = np.ascontiguousarray(rho)
