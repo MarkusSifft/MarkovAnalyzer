@@ -2,7 +2,7 @@ from numba import njit
 import numpy as np
 
 
-@njit('int(int)')
+@njit('int64(int64)')
 def factorial(n):
     result = 1
     for i in range(1, n + 1):
