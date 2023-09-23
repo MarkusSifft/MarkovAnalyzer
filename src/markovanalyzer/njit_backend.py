@@ -10,7 +10,7 @@ def factorial(n):
     return result
 
 
-@njit
+@njit("void(float64[:], int64, float64[:,:], int64[:])")
 def generate_permutations(arr, index, result, counter):
     n = len(arr)
     if index == n - 1:
