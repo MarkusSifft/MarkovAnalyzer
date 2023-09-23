@@ -63,7 +63,7 @@ def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     diagonal[~small_indices] = 1 / (-eigvals[~small_indices] - 1j * nu)
     diagonal[zero_ind] = 0
 
-    Fourier_G = eigvecs @ np.diag(diagonal) @ eigvecs_inv
+    Fourier_G = eigvecs @ np.ascontiguousarray(np.diag(diagonal)) @ eigvecs_inv
 
     return Fourier_G
 
