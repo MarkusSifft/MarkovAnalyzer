@@ -37,13 +37,11 @@ from numpy.linalg import inv, eig
 from scipy.linalg import eig
 from numba import njit, prange
 
-from itertools import permutations
 from cachetools import cached
-from cachetools import LRUCache
 from cachetools.keys import hashkey
-import psutil
 from tqdm import tqdm_notebook
 import pickle
+from itertools import permutations
 
 import arrayfire as af
 from arrayfire.interop import from_ndarray as to_gpu
@@ -51,281 +49,11 @@ from arrayfire.interop import from_ndarray as to_gpu
 from signalsnap.spectrum_plotter import SpectrumPlotter
 from signalsnap.plot_config import PlotConfig
 
-from .njit_backend import (_first_matrix_step_njit, _second_matrix_step_njit, _matrix_step_njit,
-                           second_term_njit, third_term_njit, calculate_order_3_inner_loop_njit)
+from .njit_backend import *
+from .gpu_backend import *
 
 
 #  from pympler import asizeof
-
-
-# ------ new cache_fourier_g_prim implementation -------
-# Initial maxsize
-initial_max_cache_size = 1e9  # Set to 1 to allow the first item to be cached
-
-# Create a cache with initial maxsize
-cache_dict = {'cache_fourier_g_prim': LRUCache(maxsize=initial_max_cache_size),
-              'cache_first_matrix_step': LRUCache(maxsize=initial_max_cache_size),
-              'cache_second_matrix_step': LRUCache(maxsize=initial_max_cache_size),
-              'cache_third_matrix_step': LRUCache(maxsize=initial_max_cache_size),
-              'cache_second_term': LRUCache(maxsize=initial_max_cache_size),
-              'cache_third_term': LRUCache(maxsize=initial_max_cache_size)}
-
-
-def clear_cache_dict():
-    for key in cache_dict.keys():
-        cache_dict[key].clear()
-
-
-# Function to get available GPU memory in bytes
-def get_free_gpu_memory():
-    device_props = af.device_info()
-    return device_props['device_memory'] * 1024 * 1024
-
-
-def get_free_system_memory():
-    return psutil.virtual_memory().available
-
-
-@cached(cache=cache_dict['cache_fourier_g_prim'],
-        key=lambda nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
-            nu))
-def _fourier_g_prim_gpu(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
-    """
-    Calculates the fourier transform of \mathcal{G'} as defined in 10.1103/PhysRevB.98.205143
-
-    Parameters
-    ----------
-    nu : float
-        The desired frequency
-    eigvecs : array
-        Eigenvectors of the Liouvillian
-    eigvals : array
-        Eigenvalues of the Liouvillian
-    eigvecs_inv : array
-        The inverse eigenvectors of the Liouvillian
-    enable_gpu : bool
-        Set if calculations should be performed on GPU
-    zero_ind : int
-        Index of steady state in \mathcal{G}
-    gpu_0 : int
-        Pointer to presaved zero on GPU. Avoids unnecessary transfers of zeros from CPU to GPU
-
-    Returns
-    -------
-    Fourier_G : array
-        Fourier transform of \mathcal{G'} as defined in 10.1103/PhysRevB.98.205143
-    """
-
-    small_indices = np.abs(eigvals.to_ndarray()) < 1e-12
-    if sum(small_indices) > 1:
-        raise ValueError(f'There are {sum(small_indices)} eigenvalues smaller than 1e-12. '
-                         f'The Liouvilian might have multiple steady states.')
-
-    diagonal = 1 / (-eigvals - 1j * nu)
-    diagonal[zero_ind] = gpu_0  # 0
-    diag_mat = af.data.diag(diagonal, extract=False)
-
-    tmp = af.matmul(diag_mat, eigvecs_inv)
-    Fourier_G = af.matmul(eigvecs, tmp)
-
-    return Fourier_G
-
-
-def update_cache_size(cachename, out, enable_gpu):
-    cache = cache_dict[cachename]
-
-    if cache.maxsize == 1:
-
-        if enable_gpu:
-            # Calculate the size of the array in bytes
-            # object_size = Fourier_G.elements() * Fourier_G.dtype_size()
-
-            dims = out.dims()
-            dtype_size = out.dtype_size()
-            object_size = dims[0] * dims[1] * dtype_size  # For a 2D array
-
-            # Calculate max GPU memory to use (90% of total GPU memory)
-            max_gpu_memory = get_free_gpu_memory() * 0.9 / 6
-
-            # Update the cache maxsize
-            new_max_size = int(max_gpu_memory / object_size)
-
-        else:
-            # Calculate the size of the numpy array in bytes
-            object_size = out.nbytes
-
-            # Calculate max system memory to use (90% of available memory)
-            max_system_memory = get_free_system_memory() * 0.9 / 6
-
-            # Update the cache maxsize
-            new_max_size = int(max_system_memory / object_size)
-
-        cache_dict[cachename] = LRUCache(maxsize=new_max_size)
-
-
-@cached(cache=cache_dict['cache_first_matrix_step'],
-        key=lambda rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(omega))
-def _first_matrix_step_gpu(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
-    """
-    Calculates first matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143. Used
-    for the calculation of power- and bispectrum.
-    Parameters
-    ----------
-    rho : array
-        rho equals matmul(A, Steadystate desity matrix of the system)
-    omega : float
-        Desired frequency
-    a_prim : array
-        Super operator A' as defined in 10.1103/PhysRevB.98.205143
-    eigvecs : array
-        Eigenvectors of the Liouvillian
-    eigvals : array
-        Eigenvalues of the Liouvillian
-    eigvecs_inv : array
-        The inverse eigenvectors of the Liouvillian
-    enable_gpu : bool
-        Set if calculations should be performed on GPU
-    zero_ind : int
-        Index of steady state in \mathcal{G}
-    gpu_0 : int
-        Pointer to presaved zero on GPU. Avoids unnecessary transfers of zeros from CPU to GPU
-
-    Returns
-    -------
-    out : array
-        First matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
-    """
-
-    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    rho_prim = af.matmul(G_prim, rho)
-    out = af.matmul(a_prim, rho_prim)
-
-    return out
-
-
-# ------ can be cached for large systems --------
-@cached(cache=cache_dict['cache_second_matrix_step'],
-        key=lambda rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
-            omega, omega2))
-def _second_matrix_step_gpu(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
-    """
-    Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
-    for the calculation of bispectrum.
-    Parameters
-    ----------
-    rho : array
-        A @ Steadystate desity matrix of the system
-    omega : float
-        Desired frequency
-    omega2 : float
-        Frequency used in :func:_first_matrix_step
-    a_prim : array
-        Super operator A' as defined in 10.1103/PhysRevB.98.205143
-    eigvecs : array
-        Eigenvectors of the Liouvillian
-    eigvals : array
-        Eigenvalues of the Liouvillian
-    eigvecs_inv : array
-        The inverse eigenvectors of the Liouvillian
-    enable_gpu : bool
-        Set if calculations should be performed on GPU
-    zero_ind : int
-        Index of steady state in \mathcal{G}
-    gpu_0 : int
-        Pointer to presaved zero on GPU. Avoids unnecessary transfers of zeros from CPU to GPU
-
-    Returns
-    -------
-    out : array
-        second matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
-    """
-
-    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    rho_prim = af.matmul(G_prim, rho)
-    out = af.matmul(a_prim, rho_prim)
-
-    return out
-
-
-@cached(cache=cache_dict['cache_third_matrix_step'],
-        key=lambda rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind,
-                   gpu_0: hashkey(omega, omega2))
-def _third_matrix_step_gpu(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
-    """
-    Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
-    for the calculation of bispectrum.
-    Parameters
-    ----------
-    rho : array
-        A @ Steadystate desity matrix of the system
-    omega : float
-        Desired frequency
-    omega2 : float
-        Frequency used in :func:_first_matrix_step
-    a_prim : array
-        Super operator A' as defined in 10.1103/PhysRevB.98.205143
-    eigvecs : array
-        Eigenvectors of the Liouvillian
-    eigvals : array
-        Eigenvalues of the Liouvillian
-    eigvecs_inv : array
-        The inverse eigenvectors of the Liouvillian
-    enable_gpu : bool
-        Set if calculations should be performed on GPU
-    zero_ind : int
-        Index of steady state in \mathcal{G}
-    gpu_0 : int
-        Pointer to presaved zero on GPU. Avoids unnecessary transfers of zeros from CPU to GPU
-
-    Returns
-    -------
-    out : array
-        Third matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
-    """
-
-    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    rho_prim = af.matmul(G_prim, rho)
-    out = af.matmul(a_prim, rho_prim)
-
-    return out
-
-
-def _matrix_step_gpu(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
-    """
-    Calculates one matrix multiplication in Eqs. 109 in 10.1103/PhysRevB.98.205143. Used
-    for the calculation of trispectrum.
-    Parameters
-    ----------
-    rho : array
-        A @ Steadystate desity matrix of the system
-    omega : float
-        Desired frequency
-    a_prim : array
-        Super operator A' as defined in 10.1103/PhysRevB.98.205143
-    eigvecs : array
-        Eigenvectors of the Liouvillian
-    eigvals : array
-        Eigenvalues of the Liouvillian
-    eigvecs_inv : array
-        The inverse eigenvectors of the Liouvillian
-    enable_gpu : bool
-        Set if calculations should be performed on GPU
-    zero_ind : int
-        Index of steady state in \mathcal{G}
-    gpu_0 : int
-        Pointer to presaved zero on GPU. Avoids unnecessary transfers of zeros from CPU to GPU
-
-    Returns
-    -------
-    out : array
-        output of one matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
-    """
-
-    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    rho_prim = af.matmul(G_prim, rho)
-    out = af.matmul(a_prim, rho_prim)
-
-    return out
 
 
 # ------- Second Term of S(4) ---------
@@ -389,42 +117,6 @@ def small_s(rho_steady, a_prim, eigvecs, eigvec_inv, enable_gpu, zero_ind, gpu_z
     return s_k
 
 
-def second_term_gpu(omega1, omega2, omega3, s_k, eigvals):
-    """
-    For the calculation of the erratum correction terms of the S4.
-    Calculates the second sum as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.
-
-    Parameters
-    ----------
-    omega1 : float
-        Frequency of interest
-    omega2 : float
-        Frequency of interest
-    omega3 : float
-        Frequency of interest
-    s_k : array
-        Array calculated with :func:small_s
-    eigvals : array
-        Eigenvalues of the Liouvillian
-
-    Returns
-    -------
-    out_sum : array
-        Second correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.
-    """
-    nu1 = omega1 + omega2 + omega3
-    nu2 = omega2 + omega3
-    nu3 = omega3
-
-    temp1 = af.matmulNT(s_k, s_k)
-    temp2 = af.matmulNT(eigvals + 1j * nu1, eigvals + 1j * nu3)
-    temp3 = af.tile(eigvals, 1, eigvals.shape[0]) + af.tile(eigvals.T, eigvals.shape[0]) + 1j * nu2
-    out = temp1 * 1 / (temp2 * temp3)
-    out_sum = af.algorithm.sum(af.algorithm.sum(out, dim=0), dim=1)
-
-    return out_sum
-
-
 @cached(cache=cache_dict['cache_second_term'],
         key=lambda omega1, omega2, omega3, s_k, eigvals, enable_gpu: hashkey(omega1, omega2, omega3))
 def second_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
@@ -456,42 +148,6 @@ def second_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
         return second_term_gpu(omega1, omega2, omega3, s_k, eigvals)
     else:
         return second_term_njit(omega1, omega2, omega3, s_k, eigvals)
-
-
-def third_term_gpu(omega1, omega2, omega3, s_k, eigvals):
-    """
-    For the calculation of the erratum correction terms of the S4.
-    Calculates the third sum as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.
-
-    Parameters
-    ----------
-    omega1 : float
-        Frequency of interest
-    omega2 : float
-        Frequency of interest
-    omega3 : float
-        Frequency of interest
-    s_k : array
-        Array calculated with :func:small_s
-    eigvals : array
-        Eigenvalues of the Liouvillian
-
-    Returns
-    -------
-    out_sum : array
-        Third correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.
-    """
-    nu1 = omega1 + omega2 + omega3
-    nu2 = omega2 + omega3
-    nu3 = omega3
-
-    temp1 = af.matmulNT(s_k, s_k)
-    temp2 = af.tile((eigvals + 1j * nu1) * (eigvals + 1j * nu3), 1, eigvals.shape[0])
-    temp3 = af.tile(eigvals, 1, eigvals.shape[0]) + af.tile(eigvals.T, eigvals.shape[0]) + 1j * nu2
-    out = temp1 * 1 / (temp2 * temp3)
-    out = af.algorithm.sum(
-        af.algorithm.sum(af.data.moddims(out, d0=eigvals.shape[0], d1=eigvals.shape[0], d2=1, d3=1), dim=0), dim=1)
-    return out
 
 
 # @njit(fastmath=True)
@@ -526,23 +182,6 @@ def third_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
         return third_term_gpu(omega1, omega2, omega3, s_k, eigvals)
     else:
         return third_term_njit(omega1, omega2, omega3, s_k, eigvals)
-
-
-def calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_states, a_prim, eigvecs, eigvals,
-                                     eigvecs_inv, zero_ind, gpu_0):
-    for ind_1, omega_1 in counter:
-        for ind_2, omega_2 in enumerate(omegas[ind_1:]):
-            # Calculate all permutation for the trace_sum
-            var = np.array([omega_1, omega_2, - omega_1 - omega_2])
-            perms = list(permutations(var))
-            for omega in perms:
-                rho_prim = _first_matrix_step_gpu(rho, omega[2] + omega[1],
-                                                  a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-                rho_prim = _second_matrix_step_gpu(rho_prim, omega[1], omega[2] + omega[1], a_prim, eigvecs,
-                                                   eigvals, eigvecs_inv, zero_ind, gpu_0)
-
-                rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1, d1=1, d2=n_states)
-    return rho_prim_sum
 
 
 # ------- Hepler functions ----------
@@ -1178,8 +817,9 @@ class System:  # (SpectrumCalculator):
         """
 
         self.enable_gpu = enable_gpu
-        af.device_gc()
-        clear_cache_dict()
+        if self.enable_gpu:
+            af.device_gc()
+            clear_cache_dict()
 
         if f_data[0] < 0:
             print('Only positive frequencies allowed')
@@ -1248,12 +888,13 @@ class System:  # (SpectrumCalculator):
             third_term_mat = None
 
         # estimate necessary cachesize (TODO: Anteile könnten noch anders gewählt werden)
-        # update_cache_size('cache_fourier_g_prim', self.A_prim, enable_gpu)
-        # update_cache_size('cache_first_matrix_step', rho, enable_gpu)
-        # update_cache_size('cache_second_matrix_step', rho, enable_gpu)
-        # update_cache_size('cache_third_matrix_step', rho, enable_gpu)
-        # update_cache_size('cache_second_term', rho[0], enable_gpu)
-        # update_cache_size('cache_third_term', rho[0], enable_gpu)
+        # if self.enable_gpu:
+        #     update_cache_size('cache_fourier_g_prim', self.A_prim, enable_gpu)
+        #     update_cache_size('cache_first_matrix_step', rho, enable_gpu)
+        #     update_cache_size('cache_second_matrix_step', rho, enable_gpu)
+        #     update_cache_size('cache_third_matrix_step', rho, enable_gpu)
+        #     update_cache_size('cache_second_term', rho[0], enable_gpu)
+        #     update_cache_size('cache_third_term', rho[0], enable_gpu)
 
         if order == 1:
             self.calculate_order_one(measurement_op, enable_gpu, bar)
@@ -1268,7 +909,8 @@ class System:  # (SpectrumCalculator):
             self.calculate_order_four(omegas, n_states, rho, rho_prim_sum, spec_data, second_term_mat, third_term_mat,
                                       enable_gpu, verbose, bar, cache_trispec)
 
-        clear_cache_dict()
+        if self.enable_gpu:
+            clear_cache_dict()
         return self.S[order]
 
     def plot_all(self, f_max=None):

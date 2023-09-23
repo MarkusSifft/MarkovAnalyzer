@@ -1,30 +1,44 @@
-from numba import njit
+import arrayfire as af
+from cachetools import LRUCache
+from cachetools.keys import hashkey
 import numpy as np
+from cachetools import cached
+import psutil
+from itertools import permutations
 
 
-@njit
-def factorial(n):
-    result = 1
-    for i in range(1, n + 1):
-        result *= i
-    return result
+# Function to get available GPU memory in bytes
+def get_free_gpu_memory():
+    device_props = af.device_info()
+    return device_props['device_memory'] * 1024 * 1024
 
 
-@njit
-def generate_permutations(arr, index, result, counter):
-    n = len(arr)
-    if index == n - 1:
-        result[counter[0], :] = arr
-        counter[0] += 1
-        return
-    for i in range(index, n):
-        arr[i], arr[index] = arr[index], arr[i]
-        generate_permutations(arr, index + 1, result, counter)
-        arr[i], arr[index] = arr[index], arr[i]
+def get_free_system_memory():
+    return psutil.virtual_memory().available
 
 
-@njit(fastmath=True)
-def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
+# ------ new cache_fourier_g_prim implementation -------
+# Initial maxsize
+initial_max_cache_size = 1e9  # Set to 1 to allow the first item to be cached
+
+# Create a cache with initial maxsize
+cache_dict = {'cache_fourier_g_prim': LRUCache(maxsize=initial_max_cache_size),
+              'cache_first_matrix_step': LRUCache(maxsize=initial_max_cache_size),
+              'cache_second_matrix_step': LRUCache(maxsize=initial_max_cache_size),
+              'cache_third_matrix_step': LRUCache(maxsize=initial_max_cache_size),
+              'cache_second_term': LRUCache(maxsize=initial_max_cache_size),
+              'cache_third_term': LRUCache(maxsize=initial_max_cache_size)}
+
+
+def clear_cache_dict():
+    for key in cache_dict.keys():
+        cache_dict[key].clear()
+
+
+@cached(cache=cache_dict['cache_fourier_g_prim'],
+        key=lambda nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
+            nu))
+def _fourier_g_prim_gpu(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates the fourier transform of \mathcal{G'} as defined in 10.1103/PhysRevB.98.205143
 
@@ -51,25 +65,56 @@ def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
         Fourier transform of \mathcal{G'} as defined in 10.1103/PhysRevB.98.205143
     """
 
-    small_indices = np.abs(eigvals) < 1e-12
+    small_indices = np.abs(eigvals.to_ndarray()) < 1e-12
     if sum(small_indices) > 1:
         raise ValueError(f'There are {sum(small_indices)} eigenvalues smaller than 1e-12. '
                          f'The Liouvilian might have multiple steady states.')
 
-    # diagonal = 1 / (-eigvals - 1j * nu)
-    # diagonal[zero_ind] = 0
+    diagonal = 1 / (-eigvals - 1j * nu)
+    diagonal[zero_ind] = gpu_0  # 0
+    diag_mat = af.data.diag(diagonal, extract=False)
 
-    diagonal = np.zeros_like(eigvals)
-    diagonal[~small_indices] = 1 / (-eigvals[~small_indices] - 1j * nu)
-    diagonal[zero_ind] = 0
-
-    Fourier_G = eigvecs @ np.diag(diagonal) @ eigvecs_inv
+    tmp = af.matmul(diag_mat, eigvecs_inv)
+    Fourier_G = af.matmul(eigvecs, tmp)
 
     return Fourier_G
 
 
-@njit(fastmath=True)
-def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
+def update_cache_size(cachename, out, enable_gpu):
+    cache = cache_dict[cachename]
+
+    if cache.maxsize == 1:
+
+        if enable_gpu:
+            # Calculate the size of the array in bytes
+            # object_size = Fourier_G.elements() * Fourier_G.dtype_size()
+
+            dims = out.dims()
+            dtype_size = out.dtype_size()
+            object_size = dims[0] * dims[1] * dtype_size  # For a 2D array
+
+            # Calculate max GPU memory to use (90% of total GPU memory)
+            max_gpu_memory = get_free_gpu_memory() * 0.9 / 6
+
+            # Update the cache maxsize
+            new_max_size = int(max_gpu_memory / object_size)
+
+        else:
+            # Calculate the size of the numpy array in bytes
+            object_size = out.nbytes
+
+            # Calculate max system memory to use (90% of available memory)
+            max_system_memory = get_free_system_memory() * 0.9 / 6
+
+            # Update the cache maxsize
+            new_max_size = int(max_system_memory / object_size)
+
+        cache_dict[cachename] = LRUCache(maxsize=new_max_size)
+
+
+@cached(cache=cache_dict['cache_first_matrix_step'],
+        key=lambda rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(omega))
+def _first_matrix_step_gpu(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates first matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143. Used
     for the calculation of power- and bispectrum.
@@ -100,15 +145,18 @@ def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, z
         First matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
     """
 
-    G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    rho_prim = G_prim @ rho
-    out = a_prim @ rho_prim
+    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = af.matmul(G_prim, rho)
+    out = af.matmul(a_prim, rho_prim)
 
     return out
 
 
-@njit(fastmath=True)
-def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
+# ------ can be cached for large systems --------
+@cached(cache=cache_dict['cache_second_matrix_step'],
+        key=lambda rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0: hashkey(
+            omega, omega2))
+def _second_matrix_step_gpu(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
     for the calculation of bispectrum.
@@ -141,15 +189,17 @@ def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigve
         second matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
     """
 
-    G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    rho_prim = G_prim @ rho
-    out = a_prim @ rho_prim
+    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = af.matmul(G_prim, rho)
+    out = af.matmul(a_prim, rho_prim)
 
     return out
 
 
-@njit(fastmath=True)
-def _third_matrix_step_njit(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
+@cached(cache=cache_dict['cache_third_matrix_step'],
+        key=lambda rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, enable_gpu, zero_ind,
+                   gpu_0: hashkey(omega, omega2))
+def _third_matrix_step_gpu(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
     for the calculation of bispectrum.
@@ -182,15 +232,14 @@ def _third_matrix_step_njit(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals
         Third matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
     """
 
-    G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    rho_prim = G_prim @ rho
-    out = a_prim @ rho_prim
+    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = af.matmul(G_prim, rho)
+    out = af.matmul(a_prim, rho_prim)
 
     return out
 
 
-@njit(fastmath=True)
-def _matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
+def _matrix_step_gpu(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates one matrix multiplication in Eqs. 109 in 10.1103/PhysRevB.98.205143. Used
     for the calculation of trispectrum.
@@ -221,15 +270,14 @@ def _matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_in
         output of one matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
     """
 
-    G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    rho_prim = G_prim @ rho
-    out = a_prim @ rho_prim
+    G_prim = _fourier_g_prim_gpu(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    rho_prim = af.matmul(G_prim, rho)
+    out = af.matmul(a_prim, rho_prim)
 
     return out
 
 
-@njit(fastmath=True)
-def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
+def second_term_gpu(omega1, omega2, omega3, s_k, eigvals):
     """
     For the calculation of the erratum correction terms of the S4.
     Calculates the second sum as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.
@@ -256,19 +304,16 @@ def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
     nu2 = omega2 + omega3
     nu3 = omega3
 
-    out_sum = 0
-    iterator = np.array(list(range(len(s_k))))
-    iterator = iterator[np.abs(s_k) > 1e-10 * np.max(np.abs(s_k))]
-
-    for k in iterator:
-        for l in iterator:
-            out_sum += s_k[k] * s_k[l] * 1 / ((eigvals[l] + 1j * nu1) * (eigvals[k] + 1j * nu3)
-                                              * (eigvals[k] + eigvals[l] + 1j * nu2))
+    temp1 = af.matmulNT(s_k, s_k)
+    temp2 = af.matmulNT(eigvals + 1j * nu1, eigvals + 1j * nu3)
+    temp3 = af.tile(eigvals, 1, eigvals.shape[0]) + af.tile(eigvals.T, eigvals.shape[0]) + 1j * nu2
+    out = temp1 * 1 / (temp2 * temp3)
+    out_sum = af.algorithm.sum(af.algorithm.sum(out, dim=0), dim=1)
 
     return out_sum
 
-@njit(fastmath=True)
-def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
+
+def third_term_gpu(omega1, omega2, omega3, s_k, eigvals):
     """
     For the calculation of the erratum correction terms of the S4.
     Calculates the third sum as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.
@@ -291,55 +336,36 @@ def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
     out_sum : array
         Third correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.
     """
-    out = 0
     nu1 = omega1 + omega2 + omega3
     nu2 = omega2 + omega3
     nu3 = omega3
-    iterator = np.array(list(range(len(s_k))))
-    iterator = iterator[np.abs(s_k) > 1e-10 * np.max(np.abs(s_k))]
 
-    for k in iterator:
-        for l in iterator:
-            out += s_k[k] * s_k[l] * 1 / ((eigvals[k] + 1j * nu1) * (eigvals[k] + 1j * nu3)
-                                          * (eigvals[k] + eigvals[l] + 1j * nu2))
+    temp1 = af.matmulNT(s_k, s_k)
+    temp2 = af.tile((eigvals + 1j * nu1) * (eigvals + 1j * nu3), 1, eigvals.shape[0])
+    temp3 = af.tile(eigvals, 1, eigvals.shape[0]) + af.tile(eigvals.T, eigvals.shape[0]) + 1j * nu2
+    out = temp1 * 1 / (temp2 * temp3)
+    out = af.algorithm.sum(
+        af.algorithm.sum(af.data.moddims(out, d0=eigvals.shape[0], d1=eigvals.shape[0], d2=1, d3=1), dim=0), dim=1)
     return out
 
-@njit(fastmath=True)
-def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
 
-    for ind_1 in range(len(omegas)):
-        omega_1 = omegas[ind_1]
-        for ind_2 in range(len(omegas)-ind_1):
-            omega_2 = omegas[ind_1 + ind_2]
-
+def calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_states, a_prim, eigvecs, eigvals,
+                                     eigvecs_inv, zero_ind, gpu_0):
+    for ind_1, omega_1 in counter:
+        for ind_2, omega_2 in enumerate(omegas[ind_1:]):
             # Calculate all permutation for the trace_sum
             var = np.array([omega_1, omega_2, - omega_1 - omega_2])
-            n = len(var)
-            num_permutations = factorial(n)
-            result_shape = (num_permutations, n)
+            perms = list(permutations(var))
+            for omega in perms:
+                rho_prim = _first_matrix_step_gpu(rho, omega[2] + omega[1],
+                                                  a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+                rho_prim = _second_matrix_step_gpu(rho_prim, omega[1], omega[2] + omega[1], a_prim, eigvecs,
+                                                   eigvals, eigvecs_inv, zero_ind, gpu_0)
 
-            # Pre-allocate a NumPy array to hold the results
-            perms = np.zeros(result_shape, dtype=var.dtype)
+                rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1, d1=1, d2=n_states)
+    return rho_prim_sum
 
-            # Counter for keeping track of how many permutations have been stored
-            perms_counter = np.array([0])
 
-            # Generate permutations
-            generate_permutations(var, 0, perms, perms_counter)
-
-            trace_sum = 0
-            for perms_ind in range(len(perms)):
-                omega = perms[perms_ind]
-                rho_prim = _first_matrix_step_njit(rho, omega[2] + omega[1], a_prim,
-                                                   eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-                rho_prim = _second_matrix_step_njit(rho_prim, omega[1], omega[2] + omega[1], a_prim, eigvecs,
-                                                    eigvals, eigvecs_inv, zero_ind, gpu_0)
-
-                trace_sum += rho_prim.sum()
-
-            spec_data[ind_1, ind_2 + ind_1] = trace_sum
-
-    return spec_data
-
-__all__ = ['_first_matrix_step_njit', '_second_matrix_step_njit', '_matrix_step_njit',
-                           'second_term_njit', 'third_term_njit', 'calculate_order_3_inner_loop_njit']
+__all__ = ['_first_matrix_step_gpu', '_second_matrix_step_gpu', '_matrix_step_gpu',
+           'second_term_gpu', 'third_term_gpu', 'calculate_order_3_inner_loop_gpu',
+           'cache_dict', 'clear_cache_dict']
