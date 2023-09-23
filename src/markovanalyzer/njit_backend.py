@@ -2,7 +2,7 @@ from numba import njit
 import numpy as np
 
 
-@njit
+@njit('int(int)')
 def factorial(n):
     result = 1
     for i in range(1, n + 1):
@@ -267,6 +267,7 @@ def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
 
     return out_sum
 
+
 @njit(fastmath=True)
 def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
     """
@@ -304,12 +305,12 @@ def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
                                           * (eigvals[k] + eigvals[l] + 1j * nu2))
     return out
 
+
 @njit(fastmath=True)
 def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
-
     for ind_1 in range(len(omegas)):
         omega_1 = omegas[ind_1]
-        for ind_2 in range(len(omegas)-ind_1):
+        for ind_2 in range(len(omegas) - ind_1):
             omega_2 = omegas[ind_1 + ind_2]
 
             # Calculate all permutation for the trace_sum
@@ -341,5 +342,6 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, e
 
     return spec_data
 
+
 __all__ = ['_first_matrix_step_njit', '_second_matrix_step_njit', '_matrix_step_njit',
-                           'second_term_njit', 'third_term_njit', 'calculate_order_3_inner_loop_njit']
+           'second_term_njit', 'third_term_njit', 'calculate_order_3_inner_loop_njit']
