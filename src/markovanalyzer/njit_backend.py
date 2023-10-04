@@ -259,7 +259,7 @@ def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
         Second correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.
     """
 
-    print("s_k type:", type(s_k), "dtype:", type(s_k), "shape:", s_k.shape)
+    print("s_k type:", type(s_k), "dtype:", type(s_k), "shape:", s_k.shape, s_k.dtype)
 
     nu1 = omega1 + omega2 + omega3
     nu2 = omega2 + omega3
