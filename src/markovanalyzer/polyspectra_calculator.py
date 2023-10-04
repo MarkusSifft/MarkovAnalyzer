@@ -832,9 +832,9 @@ class System:  # (SpectrumCalculator):
         self.eigvals, self.eigvecs = eig(self.transtion_matrix)
         self.eigvecs_inv = inv(self.eigvecs)
 
-        self.eigvals = self.eigvals.astype(dtype=np.complex64)
-        self.eigvecs = self.eigvecs.astype(dtype=np.complex64)
-        self.eigvecs_inv = self.eigvecs_inv.astype(dtype=np.complex64)
+        self.eigvals = self.eigvals.astype(dtype=np.complex128)
+        self.eigvecs = self.eigvecs.astype(dtype=np.complex128)
+        self.eigvecs_inv = self.eigvecs_inv.astype(dtype=np.complex128)
 
         self.zero_ind = np.argmax(np.real(self.eigvals))
 
@@ -844,9 +844,9 @@ class System:  # (SpectrumCalculator):
         self.rho_steady = rho_steady
 
         if order == 2:
-            spec_data = 1j * np.ones_like(omegas, dtype=np.complex64)
+            spec_data = 1j * np.ones_like(omegas)
         elif order == 3 or order == 4:
-            spec_data = 1j * np.zeros((len(omegas), len(omegas)), dtype=np.complex64)
+            spec_data = 1j * np.zeros((len(omegas), len(omegas)))
 
         if type(self.rho_steady) == af.array.Array:
             rho_steady = self.rho_steady.to_ndarray()
@@ -854,7 +854,6 @@ class System:  # (SpectrumCalculator):
             rho_steady = self.rho_steady
 
         self.A_prim = np.diag(self.measurement_op) - np.eye(n_states) * np.sum((self.measurement_op @ rho_steady))
-        self.A_prim = self.A_prim.astype(np.complex64)
 
         self.rho_steady = np.ascontiguousarray(self.rho_steady)
         self.eigvals = np.ascontiguousarray(self.eigvals)
