@@ -150,6 +150,7 @@ def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigve
 
     G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
     G_prim = np.ascontiguousarray(G_prim)
+    rho = np.ascontiguousarray(rho)
     rho_prim = G_prim @ rho
     out = a_prim @ rho_prim
 
@@ -191,6 +192,8 @@ def _third_matrix_step_njit(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals
     """
 
     G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    G_prim = np.ascontiguousarray(G_prim)
+    rho = np.ascontiguousarray(rho)
     rho_prim = G_prim @ rho
     out = a_prim @ rho_prim
 
