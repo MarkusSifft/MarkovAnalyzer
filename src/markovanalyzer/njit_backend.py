@@ -63,10 +63,9 @@ def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     diagonal[~small_indices] = 1 / (-eigvals[~small_indices] - 1j * nu)
     diagonal[zero_ind] = 0
 
-    #eigvecs = np.ascontiguousarray(eigvecs)
+    eigvecs = np.ascontiguousarray(eigvecs)
     diagonal = np.ascontiguousarray(np.diag(diagonal))
-
-    #eigvecs_inv = np.ascontiguousarray(eigvecs_inv)
+    eigvecs_inv = np.ascontiguousarray(eigvecs_inv)
 
     Fourier_G = eigvecs @ diagonal @ eigvecs_inv
 
@@ -106,10 +105,10 @@ def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, z
     """
 
     G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    #G_prim = np.ascontiguousarray(G_prim)
-    #rho = np.ascontiguousarray(rho)
+    G_prim = np.ascontiguousarray(G_prim)
+    rho = np.ascontiguousarray(rho)
     rho_prim = G_prim @ rho
-    #a_prim = np.ascontiguousarray(a_prim)
+    a_prim = np.ascontiguousarray(a_prim)
     out = a_prim @ rho_prim
 
     return out
@@ -150,7 +149,7 @@ def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigve
     """
 
     G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-    #G_prim = np.ascontiguousarray(G_prim)
+    G_prim = np.ascontiguousarray(G_prim)
     rho_prim = G_prim @ rho
     out = a_prim @ rho_prim
 
