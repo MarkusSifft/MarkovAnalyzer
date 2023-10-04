@@ -313,7 +313,7 @@ def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
     return out
 
 
-@njit("complex128[:,:](float64, complex128[:], complex128[:,:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=True)
+@njit("complex128[:,:](float64[:], complex128[:], complex128[:,:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=True)
 def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
 
     print("spec_data", spec_data.dtype, spec_data.shape)
