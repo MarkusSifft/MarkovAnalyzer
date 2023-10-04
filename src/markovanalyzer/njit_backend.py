@@ -154,7 +154,7 @@ def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigve
     return out
 
 
-@njit(fastmath=True)
+@njit("complex128[:](complex128[:], float64, float64, float64, complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=True)
 def _third_matrix_step_njit(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
