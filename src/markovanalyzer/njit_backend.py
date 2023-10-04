@@ -1,4 +1,4 @@
-from numba import njit
+from numba import njit, prange
 import numpy as np
 
 
@@ -313,10 +313,8 @@ def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
     return out
 
 
-@njit("complex128[:,:](float64[:], complex128[:], complex128[:,:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=True)
+@njit("complex128[:,:](float64[:], complex128[:], complex128[:,:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=True, parallel=True)
 def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
-
-    print("spec_data", spec_data.dtype, spec_data.shape)
 
     for ind_1 in range(len(omegas)):
         omega_1 = omegas[ind_1]
@@ -339,7 +337,7 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, e
             generate_permutations(var, 0, perms, perms_counter)
 
             trace_sum = 0
-            for perms_ind in range(len(perms)):
+            for perms_ind in prange(len(perms)):
                 omega = perms[perms_ind]
                 rho_prim = _first_matrix_step_njit(rho, omega[2] + omega[1], a_prim,
                                                    eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
