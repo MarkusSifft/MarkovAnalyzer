@@ -234,7 +234,7 @@ def _matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_in
     return out
 
 
-#@njit(fastmath=True)
+@njit("complex128(float64, float64, float64, complex128[:], complex128[:,:])", fastmath=True)
 def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
     """
     For the calculation of the erratum correction terms of the S4.
@@ -259,8 +259,6 @@ def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
         Second correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.
     """
 
-    print("s_k type:", type(s_k), "dtype:", type(s_k), "shape:", s_k.shape, s_k.dtype)
-
     nu1 = omega1 + omega2 + omega3
     nu2 = omega2 + omega3
     nu3 = omega3
@@ -273,8 +271,6 @@ def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
         for l in iterator:
             out_sum += s_k[k] * s_k[l] * 1 / ((eigvals[l] + 1j * nu1) * (eigvals[k] + 1j * nu3)
                                               * (eigvals[k] + eigvals[l] + 1j * nu2))
-
-    print("out_sum type:", type(out_sum), "shape:", out_sum.shape, out_sum.dtype)
 
     return out_sum
 
