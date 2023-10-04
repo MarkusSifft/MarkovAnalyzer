@@ -275,7 +275,7 @@ def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
     return out_sum
 
 
-@njit(fastmath=True)
+@njit("complex128(float64, float64, float64, complex128[:], complex128[:])", fastmath=True)
 def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
     """
     For the calculation of the erratum correction terms of the S4.
