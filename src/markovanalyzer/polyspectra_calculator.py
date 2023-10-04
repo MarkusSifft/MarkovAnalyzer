@@ -855,6 +855,15 @@ class System:  # (SpectrumCalculator):
 
         self.A_prim = np.diag(self.measurement_op) - np.eye(n_states) * np.sum((self.measurement_op @ rho_steady))
 
+        self.rho_steady = np.ascontiguousarray(self.rho_steady)
+        self.eigvals = np.ascontiguousarray(self.eigvals)
+        self.eigvecs = np.ascontiguousarray(self.eigvecs)
+        self.eigvecs_inv = np.ascontiguousarray(self.eigvecs_inv)
+        self.A_prim = np.ascontiguousarray(self.A_prim)
+
+
+
+
         rho = self.A_prim @ rho_steady
 
         n_states = rho_steady.shape[0]
