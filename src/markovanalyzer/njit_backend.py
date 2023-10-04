@@ -274,6 +274,8 @@ def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
             out_sum += s_k[k] * s_k[l] * 1 / ((eigvals[l] + 1j * nu1) * (eigvals[k] + 1j * nu3)
                                               * (eigvals[k] + eigvals[l] + 1j * nu2))
 
+    print("out_sum type:", type(out_sum), "shape:", out_sum.shape, out_sum.dtype)
+
     return out_sum
 
 
