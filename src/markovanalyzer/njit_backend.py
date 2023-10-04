@@ -104,15 +104,6 @@ def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, z
         First matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143
     """
 
-    print("rho type:", type(rho), "dtype:", rho.dtype, "shape:", rho.shape)
-    print("omega type:", type(omega), "dtype:", type(omega))
-    print("a_prim type:", type(a_prim), "dtype:", a_prim.dtype, "shape:", a_prim.shape)
-    print("eigvecs type:", type(eigvecs), "dtype:", eigvecs.dtype, "shape:", eigvecs.shape)
-    print("eigvals type:", type(eigvals), "dtype:", eigvals.dtype, "shape:", eigvals.shape)
-    print("eigvecs_inv type:", type(eigvecs_inv), "dtype:", eigvecs_inv.dtype, "shape:", eigvecs_inv.shape)
-    print("zero_ind type:", type(zero_ind), "dtype:", type(zero_ind))
-    print("gpu_0 type:", type(gpu_0), "dtype:", type(gpu_0))
-
     G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
     G_prim = np.ascontiguousarray(G_prim)
     rho = np.ascontiguousarray(rho)
