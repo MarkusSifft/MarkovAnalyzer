@@ -832,9 +832,9 @@ class System:  # (SpectrumCalculator):
         self.eigvals, self.eigvecs = eig(self.transtion_matrix)
         self.eigvecs_inv = inv(self.eigvecs)
 
-        self.eigvals = self.eigvals.astype(dtype=np.complex128)
-        self.eigvecs = self.eigvecs.astype(dtype=np.complex128)
-        self.eigvecs_inv = self.eigvecs_inv.astype(dtype=np.complex128)
+        self.eigvals = self.eigvals.astype(dtype=np.complex64)
+        self.eigvecs = self.eigvecs.astype(dtype=np.complex64)
+        self.eigvecs_inv = self.eigvecs_inv.astype(dtype=np.complex64)
 
         self.zero_ind = np.argmax(np.real(self.eigvals))
 
@@ -860,9 +860,6 @@ class System:  # (SpectrumCalculator):
         self.eigvecs = np.ascontiguousarray(self.eigvecs)
         self.eigvecs_inv = np.ascontiguousarray(self.eigvecs_inv)
         self.A_prim = np.ascontiguousarray(self.A_prim)
-
-
-
 
         rho = self.A_prim @ rho_steady
 
