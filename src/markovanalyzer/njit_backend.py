@@ -196,6 +196,7 @@ def _third_matrix_step_njit(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals
     G_prim = np.ascontiguousarray(G_prim)
     rho = np.ascontiguousarray(rho)
     rho_prim = G_prim @ rho
+    a_prim = np.ascontiguousarray(a_prim)
     out = a_prim @ rho_prim
 
     return out
