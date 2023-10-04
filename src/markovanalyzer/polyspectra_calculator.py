@@ -844,9 +844,9 @@ class System:  # (SpectrumCalculator):
         self.rho_steady = rho_steady
 
         if order == 2:
-            spec_data = 1j * np.ones_like(omegas)
+            spec_data = 1j * np.ones_like(omegas, dtype=np.complex64)
         elif order == 3 or order == 4:
-            spec_data = 1j * np.zeros((len(omegas), len(omegas)))
+            spec_data = 1j * np.zeros((len(omegas), len(omegas)), dtype=np.complex64)
 
         if type(self.rho_steady) == af.array.Array:
             rho_steady = self.rho_steady.to_ndarray()
