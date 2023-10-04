@@ -152,6 +152,7 @@ def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigve
     G_prim = np.ascontiguousarray(G_prim)
     rho = np.ascontiguousarray(rho)
     rho_prim = G_prim @ rho
+    a_prim = np.ascontiguousarray(a_prim)
     out = a_prim @ rho_prim
 
     return out
@@ -233,7 +234,10 @@ def _matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_in
     """
 
     G_prim = _fourier_g_prim_njit(omega, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+    G_prim = np.ascontiguousarray(G_prim)
+    rho = np.ascontiguousarray(rho)
     rho_prim = G_prim @ rho
+    a_prim = np.ascontiguousarray(a_prim)
     out = a_prim @ rho_prim
 
     return out
