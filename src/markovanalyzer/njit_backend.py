@@ -313,8 +313,11 @@ def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
     return out
 
 
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
+
+    print("spec_data", spec_data.dtype, spec_data.shape)
+
     for ind_1 in range(len(omegas)):
         omega_1 = omegas[ind_1]
         for ind_2 in range(len(omegas) - ind_1):
