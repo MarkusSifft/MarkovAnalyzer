@@ -58,7 +58,7 @@ from .gpu_backend import *
 
 # ------- Second Term of S(4) ---------
 
-#  @njit(parallel=True, fastmath=True)
+#  @njit(parallel=True, fastmath=False)
 def small_s(rho_steady, a_prim, eigvecs, eigvec_inv, enable_gpu, zero_ind, gpu_zero_mat):
     """
     For the calculation of the erratum correction terms of the S4.
@@ -150,7 +150,7 @@ def second_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
         return second_term_njit(omega1, omega2, omega3, s_k, eigvals)
 
 
-# @njit(fastmath=True)
+# @njit(fastmath=False)
 @cached(cache=cache_dict['cache_third_term'],
         key=lambda omega1, omega2, omega3, s_k, eigvals, enable_gpu: hashkey(omega1, omega2, omega3))
 def third_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
@@ -778,8 +778,8 @@ class System:  # (SpectrumCalculator):
                                                      enable_gpu)
 
                 if not enable_gpu:
-                    spec_data[ind_1, ind_2 + ind_1] = second_term_sum + third_term_sum + trace_sum
-                    spec_data[ind_2 + ind_1, ind_1] = second_term_sum + third_term_sum + trace_sum
+                    spec_data[ind_1, ind_2 + ind_1] = trace_sum #second_term_sum + third_term_sum + trace_sum
+                    spec_data[ind_2 + ind_1, ind_1] = trace_sum #second_term_sum + third_term_sum + trace_sum
 
         if enable_gpu:
             spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
