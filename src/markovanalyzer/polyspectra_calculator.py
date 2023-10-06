@@ -504,9 +504,24 @@ class System:  # (SpectrumCalculator):
                                                      self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
                                                      self.gpu_0)
 
-    def plot(self, plot_orders=(2, 3, 4)):
-        config = PlotConfig(plot_orders=plot_orders, s2_f=self.freq[2], s2_data=self.S[2], s3_f=self.freq[3],
-                            s3_data=self.S[3], s4_f=self.freq[4], s4_data=self.S[4])
+    def plot(self, plot_orders=(2, 3, 4), s2_f=None, s2_data=None, s3_f=None, s3_data=None, s4_f=None, s4_data=None):
+
+        if s2_f is None:
+            s2_f = self.freq[2]
+        if s3_f is None:
+            s3_f = self.freq[3]
+        if s4_f is None:
+            s4_f = self.freq[4]
+
+        if s2_data is None:
+            s2_data = self.S[2]
+        if s3_data is None:
+            s3_data = self.S[3]
+        if s4_data is None:
+            s4_data = self.S[4]
+
+        config = PlotConfig(plot_orders=plot_orders, s2_f=s2_f, s2_data=s2_data, s3_f=s3_f,
+                            s3_data=s3_data, s4_f=s4_f, s4_data=s4_data)
 
         self.f_lists = {1: None, 2: None, 3: None, 4: None}
         self.S_err = {1: None, 2: None, 3: None, 4: None}
