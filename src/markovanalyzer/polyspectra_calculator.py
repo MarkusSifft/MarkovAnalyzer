@@ -674,7 +674,6 @@ class System:  # (SpectrumCalculator):
 
         order = 2
         self.S[order] = spec_data
-        self.S[order] = self.S[order]
         if beta_offset:
             self.S[order] += 1 / 4
 
