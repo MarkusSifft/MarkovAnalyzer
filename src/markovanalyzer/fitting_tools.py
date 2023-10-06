@@ -482,8 +482,9 @@ class FitSystem:
 
                         # ------ rel. err. -------
 
-                        relative_fit_err = gaussian_filter(
-                            (self.s_list[i] - fit_list[i]) / self.s_list[i], 0)
+                        relative_fit_err = (self.s_list[i] - fit_list[i]) / self.s_list[i]
+
+                        print('s',i, 'relative_fit_err', relative_fit_err[:4,:4])
 
                         green_alpha = 1
                         color_array = np.array([[0., 0., 0., 0.], [0., 0.5, 0., green_alpha]])
@@ -491,6 +492,9 @@ class FitSystem:
 
                         err_matrix = np.zeros_like(relative_fit_err)
                         relative_measurement_error = sigma * self.err_list[i] / self.s_list[i]
+
+                        print('s', i, 'relative_measurement_error', relative_measurement_error[:4, :4])
+
                         err_matrix[np.abs(relative_fit_err) < relative_measurement_error] = 1
 
                         relative_fit_err[relative_fit_err > 0.5] = 0 * relative_fit_err[relative_fit_err > 0.5] + 0.5
