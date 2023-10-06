@@ -206,7 +206,7 @@ class FitSystem:
             self.f_list[i] = self.measurement_spec.freq[i]
             self.s_list[i] = np.real(self.measurement_spec.S[i])
             if self.measurement_spec.S_err[i] is None:
-                self.err_list[i] = np.ones_like(self.s_list[i])
+                self.err_list[i] = 1e-6 * np.ones_like(self.s_list[i])
             else:
                 self.err_list[i] = np.real(self.measurement_spec.S_err[i])
 
