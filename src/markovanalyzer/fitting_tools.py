@@ -490,7 +490,7 @@ class FitSystem:
                         err_matrix = np.zeros_like(relative_fit_err)
                         relative_measurement_error = sigma * self.err_list[i] / self.s_list[i]
 
-                        err_matrix[np.abs(relative_fit_err) < relative_measurement_error] = 1
+                        err_matrix[np.abs(relative_fit_err) < np.abs(relative_measurement_error)] = 1
 
                         relative_fit_err[relative_fit_err > 0.5] = 0 * relative_fit_err[relative_fit_err > 0.5] + 0.5
                         relative_fit_err[relative_fit_err < -0.5] = 0 * relative_fit_err[relative_fit_err < -0.5] - 0.5
