@@ -780,8 +780,8 @@ class System:  # (SpectrumCalculator):
                                                      enable_gpu)
 
                 if not enable_gpu:
-                    spec_data[ind_1, ind_2 + ind_1] = trace_sum #second_term_sum + third_term_sum + trace_sum
-                    spec_data[ind_2 + ind_1, ind_1] = trace_sum #second_term_sum + third_term_sum + trace_sum
+                    spec_data[ind_1, ind_2 + ind_1] = second_term_sum + third_term_sum + trace_sum
+                    spec_data[ind_2 + ind_1, ind_1] = second_term_sum + third_term_sum + trace_sum
 
         if enable_gpu:
             spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
