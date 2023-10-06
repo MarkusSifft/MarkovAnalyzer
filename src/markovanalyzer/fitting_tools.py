@@ -404,10 +404,10 @@ class FitSystem:
 
             # ---------- S1 ------------
             if fit_list[1] is not None:
-                relative_error_s1 = (self.s_list[1][0] - fit_list[1]) / self.s_list[1][0]
+                relative_error_s1 = (self.s_list[1][0] - fit_list[1][0]) / self.s_list[1][0]
 
                 ax[0, 0].errorbar(1, self.s_list[1][0], sigma * self.err_list[1][0], fmt='o', label='Measurement')
-                ax[0, 0].plot(1, fit_list[1], 'o', label=f'Fit (rel. err.: {relative_error_s1:.3e})')
+                ax[0, 0].plot(1, fit_list[1][0], 'o', label=f'Fit (rel. err.: {relative_error_s1:.3e})')
                 ax[0, 0].set_ylabel(r"$S^{(1)}_z$", fontdict={'fontsize': 15})
                 ax[0, 0].set_xticks([])
                 ax[0, 0].legend()

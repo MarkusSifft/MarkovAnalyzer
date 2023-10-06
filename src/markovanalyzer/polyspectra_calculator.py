@@ -652,7 +652,7 @@ class System:  # (SpectrumCalculator):
             self.S[1] = af.algorithm.sum(rho)
         else:
             rho = measurement_op @ self.rho_steady
-            self.S[1] = rho.sum()
+            self.S[1] = np.array([rho.sum()])
 
     def calculate_order_two(self, omegas, rho, rho_prim_sum, spec_data, enable_gpu, beta_offset, bar):
         if bar:
