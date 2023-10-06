@@ -275,7 +275,7 @@ def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
 
     out_sum = 0 * eigvals[0]
     iterator = np.array(list(range(len(s_k))))
-    iterator = iterator[np.abs(s_k) > 1e-10 * np.max(np.abs(s_k))]
+    #iterator = iterator[np.abs(s_k) > 1e-10 * np.max(np.abs(s_k))]
 
     for k in iterator:
         for l in iterator:
@@ -314,7 +314,7 @@ def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
     nu2 = omega2 + omega3
     nu3 = omega3
     iterator = np.array(list(range(len(s_k))))
-    iterator = iterator[np.abs(s_k) > 1e-10 * np.max(np.abs(s_k))]
+    #iterator = iterator[np.abs(s_k) > 1e-10 * np.max(np.abs(s_k))]
 
     for k in iterator:
         for l in iterator:
