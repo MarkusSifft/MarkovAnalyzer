@@ -89,6 +89,8 @@ def small_s(rho_steady, a_prim, eigvecs, eigvec_inv, enable_gpu, zero_ind, gpu_z
         Small s (Eq. 7) from 10.1103/PhysRevB.102.119901
     """
 
+    print(a_prim)
+
     if enable_gpu:
         s_k = to_gpu(np.zeros_like(rho_steady))
 
