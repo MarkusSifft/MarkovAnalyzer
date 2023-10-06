@@ -495,6 +495,7 @@ class FitSystem:
 
                         print('s', i, 'relative_measurement_error', relative_measurement_error[:4, :4])
 
+
                         err_matrix[np.abs(relative_fit_err) < np.abs(relative_measurement_error)] = 1
 
                         relative_fit_err[relative_fit_err > 0.5] = 0 * relative_fit_err[relative_fit_err > 0.5] + 0.5
