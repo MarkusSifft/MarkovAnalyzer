@@ -119,8 +119,8 @@ def small_s(rho_steady, a_prim, eigvecs, eigvec_inv, enable_gpu, zero_ind, gpu_z
     return s_k
 
 
-@cached(cache=cache_dict['cache_second_term'],
-        key=lambda omega1, omega2, omega3, s_k, eigvals, enable_gpu: hashkey(omega1, omega2, omega3))
+#@cached(cache=cache_dict['cache_second_term'],
+#        key=lambda omega1, omega2, omega3, s_k, eigvals, enable_gpu: hashkey(omega1, omega2, omega3))
 def second_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
     """
     For the calculation of the erratum correction terms of the S4.
@@ -153,8 +153,8 @@ def second_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
 
 
 # @njit(fastmath=False)
-@cached(cache=cache_dict['cache_third_term'],
-        key=lambda omega1, omega2, omega3, s_k, eigvals, enable_gpu: hashkey(omega1, omega2, omega3))
+#@cached(cache=cache_dict['cache_third_term'],
+#        key=lambda omega1, omega2, omega3, s_k, eigvals, enable_gpu: hashkey(omega1, omega2, omega3))
 def third_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
     """
     For the calculation of the erratum correction terms of the S4.
