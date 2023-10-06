@@ -79,7 +79,6 @@ class FitSystem:
     def s2(self, params, system, omegas):
 
         spec = system.calculate_one_spectrum(omegas, order=2, bar=False)
-        print(spec)
 
         if isinstance(params, np.ndarray):
             return np.real(spec) + params[-1]
@@ -484,8 +483,6 @@ class FitSystem:
 
                         relative_fit_err = (self.s_list[i] - fit_list[i]) / self.s_list[i]
 
-                        print('s',i, 'relative_fit_err', relative_fit_err[:4,:4])
-
                         green_alpha = 1
                         color_array = np.array([[0., 0., 0., 0.], [0., 0.5, 0., green_alpha]])
                         cmap_sigma = LinearSegmentedColormap.from_list(name='green_alpha', colors=color_array)
@@ -493,10 +490,7 @@ class FitSystem:
                         err_matrix = np.zeros_like(relative_fit_err)
                         relative_measurement_error = sigma * self.err_list[i] / self.s_list[i]
 
-                        print('s', i, 'relative_measurement_error', relative_measurement_error[:4, :4])
-
-
-                        err_matrix[np.abs(relative_fit_err) < np.abs(relative_measurement_error)] = 1
+                        err_matrix[np.abs(relative_fit_err) < relative_measurement_error] = 1
 
                         relative_fit_err[relative_fit_err > 0.5] = 0 * relative_fit_err[relative_fit_err > 0.5] + 0.5
                         relative_fit_err[relative_fit_err < -0.5] = 0 * relative_fit_err[relative_fit_err < -0.5] - 0.5
