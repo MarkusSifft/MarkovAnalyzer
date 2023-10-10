@@ -504,6 +504,17 @@ class System:  # (SpectrumCalculator):
                                                      self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
                                                      self.gpu_0)
 
+    def calculate_order_4_inner_loop(self, counter, omegas, rho, spec_data, rho_prim_sum, n_states):
+        if self.enable_gpu:
+            return calculate_order_4_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_states, self.A_prim,
+                                                    self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
+                                                    self.gpu_0, self.s_k)
+
+        else:
+            return calculate_order_4_inner_loop_njit(omegas, rho, spec_data, self.A_prim,
+                                                     self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
+                                                     self.gpu_0, self.s_k)
+
     def plot(self, plot_orders=(2, 3, 4), s2_f=None, s2_data=None, s3_f=None, s3_data=None, s4_f=None, s4_data=None):
 
         if s2_f is None:
@@ -736,50 +747,7 @@ class System:  # (SpectrumCalculator):
 
         self.s_k = s_k
 
-        for ind_1, omega_1 in counter:
-
-            for ind_2, omega_2 in enumerate(omegas[ind_1:]):
-                # for ind_2, omega_2 in enumerate(omegas[:ind_1+1]):
-
-                # Calculate all permutation for the trace_sum
-                var = np.array([omega_1, -omega_1, omega_2, -omega_2])
-                perms = list(permutations(var))
-                trace_sum = 0
-                second_term_sum = 0
-                third_term_sum = 0
-
-                for omega in perms:
-
-                    if cache_trispec:
-                        rho_prim = self.first_matrix_step(rho, omega[1] + omega[2] + omega[3])
-                        rho_prim = self.second_matrix_step(rho_prim, omega[2] + omega[3],
-                                                           omega[1] + omega[2] + omega[3])
-                    else:
-                        rho_prim = self.matrix_step(rho, omega[1] + omega[2] + omega[3])
-                        rho_prim = self.matrix_step(rho_prim, omega[2] + omega[3])
-
-                    rho_prim = self.matrix_step(rho_prim, omega[3])
-
-                    if enable_gpu:
-
-                        rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1,
-                                                                                 d1=1,
-                                                                                 d2=n_states)
-                        second_term_mat[ind_1, ind_2 + ind_1] += second_term(omega[1], omega[2], omega[3], s_k,
-                                                                             self.eigvals, enable_gpu)
-                        third_term_mat[ind_1, ind_2 + ind_1] += third_term(omega[1], omega[2], omega[3], s_k,
-                                                                           self.eigvals, enable_gpu)
-                    else:
-
-                        trace_sum += rho_prim.sum()
-                        second_term_sum += second_term(omega[1], omega[2], omega[3], s_k, self.eigvals,
-                                                       enable_gpu)
-                        third_term_sum += third_term(omega[1], omega[2], omega[3], s_k, self.eigvals,
-                                                     enable_gpu)
-
-                if not enable_gpu:
-                    spec_data[ind_1, ind_2 + ind_1] = second_term_sum + third_term_sum + trace_sum
-                    spec_data[ind_2 + ind_1, ind_1] = second_term_sum + third_term_sum + trace_sum
+        spec_data = self.calculate_order_4_inner_loop(counter, omegas, rho, spec_data, rho_prim_sum, n_states)
 
         if enable_gpu:
             spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
