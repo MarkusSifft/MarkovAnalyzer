@@ -382,13 +382,13 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, e
 
 @njit(
     '(float64[:,:], complex128[:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64, complex128[:])',
-    parallel=False)
+    parallel=True)
 def calculate_order_4_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0, s_k):
     trace_sum = 0
     second_term_sum = 0
     third_term_sum = 0
 
-    for perms_ind in prange(len(perms)):
+    for perms_ind in range(len(perms)):
         omega = perms[perms_ind]
         rho_prim = _first_matrix_step_njit(rho, omega[1] + omega[2] + omega[3], a_prim,
                                            eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
