@@ -335,7 +335,7 @@ def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
     "complex128[:,:](float64[:], complex128[:], complex128[:,:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)",
     parallel=True)
 def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
-    for ind_1 in prange(len(omegas)):
+    for ind_1 in range(len(omegas)):
         omega_1 = omegas[ind_1]
         for ind_2 in range(len(omegas) - ind_1):
             omega_2 = omegas[ind_1 + ind_2]
