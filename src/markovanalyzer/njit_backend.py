@@ -332,7 +332,8 @@ def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
 
 
 @njit(
-    'complex128(float64[:,:], complex128[:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)')
+    'complex128(float64[:,:], complex128[:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)',
+    parallel=True)
 def calculate_order_3_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     trace_sum = 0
     for perms_ind in range(len(perms)):
