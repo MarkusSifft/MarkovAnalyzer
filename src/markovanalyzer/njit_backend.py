@@ -388,7 +388,7 @@ def calculate_order_4_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvec
     second_term_sum = 0
     third_term_sum = 0
 
-    for perms_ind in range(len(perms)):
+    for perms_ind in prange(len(perms)):
         omega = perms[perms_ind]
         rho_prim = _first_matrix_step_njit(rho, omega[1] + omega[2] + omega[3], a_prim,
                                            eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
