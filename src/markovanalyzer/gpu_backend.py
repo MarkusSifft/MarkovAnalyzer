@@ -363,9 +363,50 @@ def calculate_order_3_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_state
                                                    eigvals, eigvecs_inv, zero_ind, gpu_0)
 
                 rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1, d1=1, d2=n_states)
-    return rho_prim_sum
+
+    spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
+
+    return spec_data
+
+
+def calculate_order_4_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_states, a_prim, eigvecs, eigvals,
+                                     eigvecs_inv, zero_ind, gpu_0, s_k, second_term_mat, third_term_mat):
+    for ind_1, omega_1 in counter:
+
+        for ind_2, omega_2 in enumerate(omegas[ind_1:]):
+            # for ind_2, omega_2 in enumerate(omegas[:ind_1+1]):
+
+            # Calculate all permutation for the trace_sum
+            var = np.array([omega_1, -omega_1, omega_2, -omega_2])
+            perms = list(permutations(var))
+            trace_sum = 0
+            second_term_sum = 0
+            third_term_sum = 0
+
+            for omega in perms:
+                rho_prim = _first_matrix_step_gpu(rho, omega[1] + omega[2] + omega[3], a_prim, eigvecs, eigvals,
+                                                  eigvecs_inv, zero_ind, gpu_0)
+                rho_prim = _second_matrix_step_gpu(rho_prim, omega[2] + omega[3],
+                                                   omega[1] + omega[2] + omega[3], a_prim, eigvecs,
+                                                   eigvals, eigvecs_inv, zero_ind, gpu_0)
+
+                rho_prim = _matrix_step_gpu(rho_prim, omega[3], a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
+
+                rho_prim_sum[ind_1, ind_2 + ind_1, :] += af.data.moddims(rho_prim, d0=1,
+                                                                         d1=1,
+                                                                         d2=n_states)
+                second_term_mat[ind_1, ind_2 + ind_1] += second_term_gpu(omega[1], omega[2], omega[3], s_k, eigvals)
+                third_term_mat[ind_1, ind_2 + ind_1] += third_term_gpu(omega[1], omega[2], omega[3], s_k, eigvals)
+
+    spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
+    spec_data += af.algorithm.sum(af.algorithm.sum(second_term_mat + third_term_mat, dim=3),
+                                  dim=2).to_ndarray()
+
+    spec_data[(spec_data == 0).nonzero()] = spec_data.T[(spec_data == 0).nonzero()]
+
+    return spec_data
 
 
 __all__ = ['_first_matrix_step_gpu', '_second_matrix_step_gpu', '_matrix_step_gpu',
            'second_term_gpu', 'third_term_gpu', 'calculate_order_3_inner_loop_gpu',
-           'cache_dict', 'clear_cache_dict']
+           'cache_dict', 'clear_cache_dict', 'calculate_order_4_inner_loop_gpu']

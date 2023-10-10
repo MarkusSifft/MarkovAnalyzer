@@ -117,7 +117,7 @@ def small_s(rho_steady, a_prim, eigvecs, eigvec_inv, enable_gpu, zero_ind, gpu_z
     return s_k
 
 
-#@cached(cache=cache_dict['cache_second_term'],
+# @cached(cache=cache_dict['cache_second_term'],
 #        key=lambda omega1, omega2, omega3, s_k, eigvals, enable_gpu: hashkey(omega1, omega2, omega3))
 def second_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
     """
@@ -151,7 +151,7 @@ def second_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
 
 
 # @njit(fastmath=False)
-#@cached(cache=cache_dict['cache_third_term'],
+# @cached(cache=cache_dict['cache_third_term'],
 #        key=lambda omega1, omega2, omega3, s_k, eigvals, enable_gpu: hashkey(omega1, omega2, omega3))
 def third_term(omega1, omega2, omega3, s_k, eigvals, enable_gpu):
     """
@@ -504,11 +504,11 @@ class System:  # (SpectrumCalculator):
                                                      self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
                                                      self.gpu_0)
 
-    def calculate_order_4_inner_loop(self, counter, omegas, rho, spec_data, rho_prim_sum, n_states):
+    def calculate_order_4_inner_loop(self, counter, omegas, rho, spec_data, rho_prim_sum, n_states, second_term_mat, third_term_mat):
         if self.enable_gpu:
             return calculate_order_4_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_states, self.A_prim,
                                                     self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
-                                                    self.gpu_0, self.s_k)
+                                                    self.gpu_0, self.s_k, second_term_mat, third_term_mat)
 
         else:
             return calculate_order_4_inner_loop_njit(omegas, rho, spec_data, self.A_prim,
@@ -713,9 +713,6 @@ class System:  # (SpectrumCalculator):
 
         spec_data = self.calculate_order_3_inner_loop(counter, omegas, rho, spec_data, rho_prim_sum, n_states)
 
-        if enable_gpu:
-            spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
-
         spec_data[(spec_data == 0).nonzero()] = spec_data.T[(spec_data == 0).nonzero()]
 
         if np.max(np.abs(np.imag(np.real_if_close(_full_bispec(spec_data))))) > 0 and verbose:
@@ -747,14 +744,7 @@ class System:  # (SpectrumCalculator):
 
         self.s_k = s_k
 
-        spec_data = self.calculate_order_4_inner_loop(counter, omegas, rho, spec_data, rho_prim_sum, n_states)
-
-        if enable_gpu:
-            spec_data = af.algorithm.sum(rho_prim_sum, dim=2).to_ndarray()
-            spec_data += af.algorithm.sum(af.algorithm.sum(second_term_mat + third_term_mat, dim=3),
-                                          dim=2).to_ndarray()
-
-            spec_data[(spec_data == 0).nonzero()] = spec_data.T[(spec_data == 0).nonzero()]
+        spec_data = self.calculate_order_4_inner_loop(counter, omegas, rho, spec_data, rho_prim_sum, n_states, second_term_mat, third_term_mat)
 
         if np.max(np.abs(np.imag(np.real_if_close(_full_trispec(spec_data))))) > 0 and verbose:
             print('Trispectrum might have an imaginary part')
@@ -837,11 +827,11 @@ class System:  # (SpectrumCalculator):
 
         self.A_prim = np.diag(self.measurement_op) - np.eye(n_states) * np.sum((self.measurement_op @ rho_steady))
 
-        #self.rho_steady = np.ascontiguousarray(self.rho_steady)
-        #self.eigvals = np.ascontiguousarray(self.eigvals)
-        #self.eigvecs = np.ascontiguousarray(self.eigvecs)
-        #self.eigvecs_inv = np.ascontiguousarray(self.eigvecs_inv)
-        #self.A_prim = np.ascontiguousarray(self.A_prim)
+        # self.rho_steady = np.ascontiguousarray(self.rho_steady)
+        # self.eigvals = np.ascontiguousarray(self.eigvals)
+        # self.eigvecs = np.ascontiguousarray(self.eigvecs)
+        # self.eigvecs_inv = np.ascontiguousarray(self.eigvecs_inv)
+        # self.A_prim = np.ascontiguousarray(self.A_prim)
 
         rho = self.A_prim @ rho_steady
 
