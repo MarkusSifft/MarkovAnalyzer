@@ -59,6 +59,7 @@ def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     # diagonal = 1 / (-eigvals - 1j * nu)
     # diagonal[zero_ind] = 0
 
+
     diagonal = np.zeros_like(eigvals)
     diagonal[~small_indices] = 1 / (-eigvals[~small_indices] - 1j * nu)
     diagonal[zero_ind] = 0
