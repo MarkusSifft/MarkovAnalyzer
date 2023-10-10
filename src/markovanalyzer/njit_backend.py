@@ -330,7 +330,9 @@ def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
                                           * (eigvals[k] + eigvals[l] + 1j * nu2))
     return out
 
-@njit('complex128(float64[:], complex128[:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)')
+
+@njit(
+    'complex128(float64[:,:], complex128[:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)')
 def calculate_order_3_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     trace_sum = 0
     for perms_ind in range(len(perms)):
@@ -342,6 +344,7 @@ def calculate_order_3_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvec
 
         trace_sum += rho_prim_2.sum()
     return trace_sum
+
 
 @njit(
     "complex128[:,:](float64[:], complex128[:], complex128[:,:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)",
@@ -373,8 +376,6 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, e
             spec_data[ind_1, ind_2 + ind_1] = trace_sum
 
     return spec_data
-
-
 
 
 @njit(
