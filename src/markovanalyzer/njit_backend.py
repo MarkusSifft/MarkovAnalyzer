@@ -381,7 +381,7 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, e
 
 
 @njit(
-    '(float64[:,:], complex128[:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64, complex128[:]) -> (complex128, complex128, complex128)',
+    '(complex128, complex128, complex128),(float64[:,:], complex128[:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64, complex128[:])',
     parallel=False)
 def calculate_order_4_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0, s_k):
     trace_sum = 0
