@@ -336,7 +336,7 @@ def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
     parallel=True)
 def calculate_order_3_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     trace_sum = 0
-    for perms_ind in range(len(perms)):
+    for perms_ind in prange(len(perms)):
         omega = perms[perms_ind]
         rho_prim = _first_matrix_step_njit(rho, omega[2] + omega[1], a_prim,
                                            eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
