@@ -23,7 +23,7 @@ def generate_permutations(arr, index, result, counter):
         arr[i], arr[index] = arr[index], arr[i]
 
 
-@njit("complex128[:,:](float64, complex128[:,:], complex128[:], complex128[:,:], int64, int64)", fastmath=False)
+@njit("complex128[:,:](float64, complex128[:,:], complex128[:], complex128[:,:], int64, int64)", parallel=True)
 def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates the fourier transform of \mathcal{G'} as defined in 10.1103/PhysRevB.98.205143
@@ -74,7 +74,7 @@ def _fourier_g_prim_njit(nu, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
 
 @njit(
     "complex128[:](complex128[:], float64, complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)",
-    fastmath=False)
+    parallel=True)
 def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates first matrix multiplication in Eqs. 110-111 in 10.1103/PhysRevB.98.205143. Used
@@ -118,7 +118,7 @@ def _first_matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, z
 
 @njit(
     "complex128[:](complex128[:], float64, float64, complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)",
-    fastmath=False)
+    parallel=True)
 def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
@@ -164,7 +164,7 @@ def _second_matrix_step_njit(rho, omega, omega2, a_prim, eigvecs, eigvals, eigve
 
 @njit(
     "complex128[:](complex128[:], float64, float64, float64, complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)",
-    fastmath=False)
+    parallel=True)
 def _third_matrix_step_njit(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates second matrix multiplication in Eqs. 110 in 10.1103/PhysRevB.98.205143. Used
@@ -210,7 +210,7 @@ def _third_matrix_step_njit(rho, omega, omega2, omega3, a_prim, eigvecs, eigvals
 
 @njit(
     "complex128[:](complex128[:], float64, complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64)",
-    fastmath=False)
+    parallel=True)
 def _matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0):
     """
     Calculates one matrix multiplication in Eqs. 109 in 10.1103/PhysRevB.98.205143. Used
@@ -252,7 +252,7 @@ def _matrix_step_njit(rho, omega, a_prim, eigvecs, eigvals, eigvecs_inv, zero_in
     return out
 
 
-@njit("complex128(float64, float64, float64, complex128[:], complex128[:])", fastmath=False)
+@njit("complex128(float64, float64, float64, complex128[:], complex128[:])", parallel=True)
 def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
     """
     For the calculation of the erratum correction terms of the S4.
@@ -293,7 +293,7 @@ def second_term_njit(omega1, omega2, omega3, s_k, eigvals):
     return out_sum
 
 
-@njit("complex128(float64, float64, float64, complex128[:], complex128[:])", fastmath=False)
+@njit("complex128(float64, float64, float64, complex128[:], complex128[:])", parallel=True)
 def third_term_njit(omega1, omega2, omega3, s_k, eigvals):
     """
     For the calculation of the erratum correction terms of the S4.
