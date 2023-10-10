@@ -381,7 +381,7 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, e
 
 
 @njit(
-    'complex128[:](float64[:,:], complex128[:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64, complex128[:])',
+    '(complex128, complex128, complex128)(float64[:,:], complex128[:], complex128[:,:], complex128[:,:], complex128[:], complex128[:,:], int64, int64, complex128[:])',
     parallel=False)
 def calculate_order_4_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0, s_k):
     trace_sum = 0
@@ -402,7 +402,7 @@ def calculate_order_4_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvec
         second_term_sum += second_term_njit(omega[1], omega[2], omega[3], s_k, eigvals)
         third_term_sum += third_term_njit(omega[1], omega[2], omega[3], s_k, eigvals)
 
-    return np.array([trace_sum, second_term_sum, third_term_sum])
+    return trace_sum, second_term_sum, third_term_sum
 
 
 @njit(
@@ -430,10 +430,10 @@ def calculate_order_4_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, e
             # Generate permutations
             generate_permutations(var, 0, perms, perms_counter)
 
-            sum_array = calculate_order_4_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0, s_k)
+            trace_sum, second_term_sum, third_term_sum = calculate_order_4_parallel_loop(perms, rho, a_prim, eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0, s_k)
 
-            spec_data[ind_1, ind_2 + ind_1] = sum_array.sum()
-            spec_data[ind_2 + ind_1, ind_1] = sum_array.sum()
+            spec_data[ind_1, ind_2 + ind_1] = second_term_sum + third_term_sum + trace_sum
+            spec_data[ind_2 + ind_1, ind_1] = second_term_sum + third_term_sum + trace_sum
 
     return spec_data
 
