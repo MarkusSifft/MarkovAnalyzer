@@ -360,10 +360,10 @@ def calculate_order_3_inner_loop_njit(omegas, rho, spec_data, a_prim, eigvecs, e
                 omega = perms[perms_ind]
                 rho_prim = _first_matrix_step_njit(rho, omega[2] + omega[1], a_prim,
                                                    eigvecs, eigvals, eigvecs_inv, zero_ind, gpu_0)
-                rho_prim = _second_matrix_step_njit(rho_prim, omega[1], omega[2] + omega[1], a_prim, eigvecs,
+                rho_prim_2 = _second_matrix_step_njit(rho_prim, omega[1], omega[2] + omega[1], a_prim, eigvecs,
                                                     eigvals, eigvecs_inv, zero_ind, gpu_0)
 
-                trace_sum += rho_prim.sum()
+                trace_sum += rho_prim_2.sum()
 
             spec_data[ind_1, ind_2 + ind_1] = trace_sum
 
