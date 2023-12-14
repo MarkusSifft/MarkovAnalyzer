@@ -1,4 +1,4 @@
-# This file is part of QuantumPolyspectra: a Python Package for the
+# This file is part of QuantumCatch: a Python Package for the
 # Analysis and Simulation of Quantum Measurements
 #
 #    Copyright (c) 2020 and later, Markus Sifft and Daniel Hägele.
@@ -14,10 +14,6 @@
 #    2. Redistributions in binary form must reproduce the above copyright
 #       notice, this list of conditions and the following disclaimer in the
 #       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
 #
 #    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -35,13 +31,9 @@
 import numpy as np
 from numpy.linalg import inv, eig
 from scipy.linalg import eig
-from numba import njit, prange
 
-from cachetools import cached
-from cachetools.keys import hashkey
 from tqdm import tqdm_notebook
 import pickle
-from itertools import permutations
 
 import arrayfire as af
 from arrayfire.interop import from_ndarray as to_gpu
