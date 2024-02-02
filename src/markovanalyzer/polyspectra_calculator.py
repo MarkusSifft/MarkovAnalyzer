@@ -530,11 +530,11 @@ class System:  # (SpectrumCalculator):
         self.S_err = {1: None, 2: None, 3: None, 4: None}
         self.config = config
         self.config.f_unit = 'Hz'
-        plot = SpectrumPlotter(self, config)
+        plot_obj = SpectrumPlotter(self, config)
 
         if self.S[1] is not None:
             print('s1:', self.S[1])
-        fig = plot.plot()
+        fig = plot_obj.plot()
         return fig
 
     def calculate_spectrum(self, f_data, order_in, bar=True, verbose=False, beta_offset=True,

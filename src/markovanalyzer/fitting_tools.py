@@ -63,7 +63,7 @@ class FitSystem:
         self.huber_loss = huber_loss
         self.huber_delta = huber_delta
         self.enable_gpu = enable_gpu
-        self.f_unit= f_unit
+        self.f_unit = f_unit
 
     def s1(self, system, omegas):
 
@@ -277,8 +277,8 @@ class FitSystem:
                         self.s_list[i] = self.s_list_original[i][::res]
                         self.err_list[i] = self.err_list_original[i][::res]
                     elif i > 2:
-                        self.s_list[i] = self.s_list_original[i][::res,::res]
-                        self.err_list[i] = self.err_list_original[i][::res,::res]
+                        self.s_list[i] = self.s_list_original[i][::res, ::res]
+                        self.err_list[i] = self.err_list_original[i][::res, ::res]
 
                 result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol)
 
@@ -465,7 +465,8 @@ class FitSystem:
                         c = ax[j, 0].pcolormesh(x, y, z_both - np.diag(np.diag(z_both) / 2), cmap=cmap, norm=norm,
                                                 zorder=1)
 
-                        ax[j, 0].set_ylabel("\n $\omega_2/ 2 \pi$ (" + self.f_unit + ")", labelpad=0, fontdict={'fontsize': 15})
+                        ax[j, 0].set_ylabel("\n $\omega_2/ 2 \pi$ (" + self.f_unit + ")", labelpad=0,
+                                            fontdict={'fontsize': 15})
                         ax[j, 0].set_xlabel(r"$\omega_1 / 2 \pi$ (" + self.f_unit + ")", fontdict={'fontsize': 15})
 
                         ax[j, 0].tick_params(axis='both', direction='in', labelsize=14)
@@ -498,7 +499,8 @@ class FitSystem:
                         c = ax[j, 1].pcolormesh(x, y, relative_fit_err, cmap=cmap, norm=norm, zorder=1)
                         ax[j, 1].pcolormesh(x, y, err_matrix, cmap=cmap_sigma, vmin=0, vmax=1, shading='auto')
 
-                        ax[j, 1].set_ylabel("\n $\omega_2/ 2 \pi$ (" + self.f_unit + ")", labelpad=0, fontdict={'fontsize': 15})
+                        ax[j, 1].set_ylabel("\n $\omega_2/ 2 \pi$ (" + self.f_unit + ")", labelpad=0,
+                                            fontdict={'fontsize': 15})
                         ax[j, 1].set_xlabel(r"$\omega_1 / 2 \pi$ (" + self.f_unit + ")", fontdict={'fontsize': 15})
 
                         ax[j, 1].tick_params(axis='both', direction='in', labelsize=14)

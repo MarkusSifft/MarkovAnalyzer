@@ -32,3 +32,5 @@
 ###############################################################################
 
 from markovanalyzer.foreward import *
+from markovanalyzer.fitting_tools import *
+from markovanalyzer.polyspectra_calculator import *
