@@ -134,4 +134,4 @@ result = system_fit.complete_fit(path, parameter,
                         method='least_squares', xtol=1e-6, ftol=1e-6, show_plot=True, fit_modus='order_based',
                         fit_orders=(1,2,3,4), beta_offset=False)
 ```
-![two level fit](Example/example_data/two_level_final_fit.png)
+![two level fit](Examples/example_data/two_level_final_fit.png)
