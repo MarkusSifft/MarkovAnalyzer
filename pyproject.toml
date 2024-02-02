@@ -4,14 +4,14 @@ requires = [
 build-backend = "hatchling.build"
 
 [project]
-name = "signalsnap"
-version = "0.1.13"
+name = "MarkovAnalyzer"
+version = "0.1"
 authors = [
 { name="Markus Sifft", email="markus.sifft@rub.de" },
 ]
-description = "Spectra at your fingertips"
+description = "Automate Markov Process Characterization"
 readme = "README.md"
-requires-python = "<3.12"
+requires-python = ">3.8"
 classifiers = [
  "Development Status :: 2 - Pre-Alpha",
  "Intended Audience :: Science/Research",
@@ -29,10 +29,15 @@ dependencies = [
  "numba",
  "scipy",
  "tqdm",
- "plotly"
+ "plotly",
+ "signalsnap",
+ "ipywidgets",
+ "lmfit",
+ "cachetools",
+ "psutil",
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/MarkusSifft/SignalSnap"
-"Bug Tracker" = "https://github.com/MarkusSifft/SignalSnap/issues"
+"Homepage" = "https://github.com/MarkusSifft/MarkovAnalyzer"
+"Bug Tracker" = "https://github.com/MarkusSifft/MarkovAnalyzer/issues"
 

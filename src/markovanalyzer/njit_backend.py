@@ -1,5 +1,4 @@
-# This file is part of QuantumCatch: a Python Package for the
-# Analysis and Simulation of Quantum Measurements
+# This file is part of MarkovAnalyzer
 #
 #    Copyright (c) 2020 and later, Markus Sifft and Daniel Hägele.
 #    All rights reserved.
