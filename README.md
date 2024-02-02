@@ -7,12 +7,12 @@ Here, a few outstanding features of MarkovAnalyzer:
 * 
 
 ## Installation
-SignalSnap is available on `pip` and can be installed with 
+MarkovAnalyzer is available on `pip` and can be installed with 
 ```bash
 pip install markovanalyzer
 ```
 
-### Installation of Arrayfire
+### Installation of Arrayfire 
 Besides running on CPU, MarkovAnalyzer offers GPU support for Nvidia and AMD cards. Depending on the hardware used, the
 usage of a GPU is highly recommended for Markov systems with more 
 than about 100 states. A comprehensive installation guide for Linux + NVidia GPU can be found [here](https://github.com/MarkusSifft/QuantumCatch/wiki/Installation-Guide). 

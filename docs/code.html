@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Code Documentation &#8212; MarkovAnalyzer  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=61cd365c" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to MarkovAnalyzer’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-src.markovanalyzer.polyspectra_calculator">
+<span id="code-documentation"></span><h1>Code Documentation<a class="headerlink" href="#module-src.markovanalyzer.polyspectra_calculator" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.polyspectra_calculator.</span></span><span class="sig-name descname"><span class="pre">System</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transition_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">measurement_op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_ph</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_det</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System" title="Link to this definition">¶</a></dt>
+<dd><p>Class that will represent the system of interest. It contains the parameters of the system and the
+methods for calculating and storing the polyspectra.</p>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">¶</a></h2>
+</section>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>freq<span class="classifier">dict</span></dt><dd><p>Stores the frequencies from the analytic spectra, order 2 to 4</p>
+</dd>
+<dt>S<span class="classifier">dict</span></dt><dd><p>Stores the analytic spectra, order 2 to 4</p>
+</dd>
+<dt>numeric_f_data<span class="classifier">dict</span></dt><dd><p>Stores the frequencies from the numeric spectra, order 2 to 4</p>
+</dd>
+<dt>numeric_spec_data<span class="classifier">dict</span></dt><dd><p>Stores the numeric spectra, order 2 to 4</p>
+</dd>
+<dt>eigvals<span class="classifier">array</span></dt><dd><p>Stores eigenvalues of Liouvillian</p>
+</dd>
+<dt>eigvecs<span class="classifier">array</span></dt><dd><p>Stores eigenvectors of Liouvillian</p>
+</dd>
+<dt>eigvecs_inv<span class="classifier">array</span></dt><dd><p>Stores the matrix inversion of the eigenvector matrix</p>
+</dd>
+<dt>zero_ind<span class="classifier">int</span></dt><dd><p>Contains the index of the steady state in the eigvalues</p>
+</dd>
+<dt>A_prim<span class="classifier">array</span></dt><dd><p>Stores the measurement superoperator mathcal{A} as defined in 10.1103/PhysRevB.98.205143</p>
+</dd>
+<dt>rho_steady<span class="classifier">array</span></dt><dd><p>Steady state of the Liouvillian</p>
+</dd>
+<dt>s_k<span class="classifier">array</span></dt><dd><p>Stores small s (Eq. 7) from 10.1103/PhysRevB.102.119901</p>
+</dd>
+<dt>N<span class="classifier">int</span></dt><dd><p>Number of points in time series in window for the calculation of numerical spectra</p>
+</dd>
+<dt>fs<span class="classifier">float</span></dt><dd><p>Sampling rate of the simulated signal for numerical spectra</p>
+</dd>
+<dt>a_w<span class="classifier">array</span></dt><dd><p>Fourier coefficients of simulated signal for numerical spectra</p>
+</dd>
+<dt>a_w_cut<span class="classifier">array</span></dt><dd><p>Contains only the frequencies of interest from a_w (to speed up calculations)</p>
+</dd>
+<dt>enable_gpu<span class="classifier">bool</span></dt><dd><p>Set if GPU should be used for analytic spectra calculation</p>
+</dd>
+<dt>gpu_0<span class="classifier">int</span></dt><dd><p>Stores pointer to zero an the GPU</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System.calc_a_w3">
+<span class="sig-name descname"><span class="pre">calc_a_w3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a_w</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System.calc_a_w3" title="Link to this definition">¶</a></dt>
+<dd><p>Preparation of a_(w1+w2) for the calculation of the bispectrum</p>
+<section id="id1">
+<h3>Parameters<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>a_w<span class="classifier">array</span></dt><dd><p>Fourier coefficients of signal</p>
+</dd>
+</dl>
+</section>
+<section id="returns">
+<h3>Returns<a class="headerlink" href="#returns" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>a_w3<span class="classifier">array</span></dt><dd><p>Matrix corresponding to a_(w1+w2)</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System.calculate_one_spectrum">
+<span class="sig-name descname"><span class="pre">calculate_one_spectrum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_gpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_trispec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System.calculate_one_spectrum" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates analytic polyspectra (order 2 to 4) as described in 10.1103/PhysRevB.98.205143
+and 10.1103/PhysRevB.102.119901</p>
+<section id="id2">
+<h3>Parameters<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>f_data<span class="classifier">array</span></dt><dd><p>Frequencies at which the spectra are calculated</p>
+</dd>
+<dt>order<span class="classifier">int {2,3,4}</span></dt><dd><p>Order of the polyspectra to be calculated</p>
+</dd>
+<dt>g_prim<span class="classifier">bool</span></dt><dd><p>Set if mathcal_a should be applied twice/squared (was of use when defining the current operator)
+But unnecessary for standard polyspectra</p>
+</dd>
+<dt>bar<span class="classifier">bool</span></dt><dd><p>Set if progress bars should be shown during calculation</p>
+</dd>
+<dt>verbose<span class="classifier">bool</span></dt><dd><p>Set if more details about the current state of the calculation are needed</p>
+</dd>
+<dt>correction_only<span class="classifier">bool</span></dt><dd><p>Set if only the correction terms of the S4 from erratum 10.1103/PhysRevB.102.119901 should be
+calculated</p>
+</dd>
+<dt>beta_offset<span class="classifier">bool</span></dt><dd><p>Set if constant offset due to deetector noise should be added to the power spectrum</p>
+</dd>
+<dt>enable_gpu<span class="classifier">bool</span></dt><dd><p>Set if GPU should be used for calculation</p>
+</dd>
+<dt>cache_trispec<span class="classifier">bool</span></dt><dd><p>Set if Matrix multiplication in the calculation of the trispectrum should be cached</p>
+</dd>
+</dl>
+</section>
+<section id="id3">
+<h3>Returns<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>S[order]<span class="classifier">array</span></dt><dd><p>Returns spectral value at specified frequencies</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System.extension_for_single_photon">
+<span class="sig-name descname"><span class="pre">extension_for_single_photon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_ph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma_det</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System.extension_for_single_photon" title="Link to this definition">¶</a></dt>
+<dd><p>Adds further connections to the rates dictionary based on the input array m_op and float gamma_det.</p>
+<section id="id4">
+<h3>Parameters<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>rates<span class="classifier">dict</span></dt><dd><p>Existing rates dictionary where keys are in ‘from_state-&gt;to_state’ format and values are the rates.</p>
+</dd>
+<dt>m_op<span class="classifier">list</span></dt><dd><p>Array of rates used to connect the original levels with their corresponding replicated levels.</p>
+</dd>
+<dt>gamma_det<span class="classifier">float</span></dt><dd><p>Rate used to connect each replicated level back to its original level.</p>
+</dd>
+</dl>
+</section>
+<section id="id5">
+<h3>Returns<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>dict</dt><dd><p>Extended rates dictionary containing both the original, replicated, and new connection rates.</p>
+</dd>
+</dl>
+</section>
+<section id="example">
+<h3>Example<a class="headerlink" href="#example" title="Link to this heading">¶</a></h3>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rates</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;0-&gt;1&#39;</span><span class="p">:</span> <span class="s1">&#39;gamma_in&#39;</span><span class="p">,</span> <span class="s1">&#39;0-&gt;2&#39;</span><span class="p">:</span> <span class="s1">&#39;gamma_in&#39;</span><span class="p">,</span> <span class="s1">&#39;1-&gt;0&#39;</span><span class="p">:</span> <span class="s1">&#39;gamma_A&#39;</span><span class="p">,</span> <span class="s1">&#39;1-&gt;2&#39;</span><span class="p">:</span> <span class="s1">&#39;gamma_spin + gamma_R&#39;</span><span class="p">,</span> <span class="s1">&#39;2-&gt;1&#39;</span><span class="p">:</span> <span class="s1">&#39;gamma_spin&#39;</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m_op</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;m_op[0]&#39;</span><span class="p">,</span> <span class="s1">&#39;m_op[1]&#39;</span><span class="p">,</span> <span class="s1">&#39;m_op[2]&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gamma_det</span> <span class="o">=</span> <span class="s1">&#39;gamma_det&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">extension_for_single_photon</span><span class="p">(</span><span class="n">rates</span><span class="p">,</span> <span class="n">m_op</span><span class="p">,</span> <span class="n">gamma_det</span><span class="p">)</span>
+<span class="go">{</span>
+<span class="go">    &#39;0-&gt;1&#39;: &#39;gamma_in&#39;,</span>
+<span class="go">    &#39;0-&gt;2&#39;: &#39;gamma_in&#39;,</span>
+<span class="go">    &#39;1-&gt;0&#39;: &#39;gamma_A&#39;,</span>
+<span class="go">    &#39;1-&gt;2&#39;: &#39;gamma_spin + gamma_R&#39;,</span>
+<span class="go">    &#39;2-&gt;1&#39;: &#39;gamma_spin&#39;,</span>
+<span class="go">    &#39;3-&gt;4&#39;: &#39;gamma_in&#39;,</span>
+<span class="go">    &#39;3-&gt;5&#39;: &#39;gamma_in&#39;,</span>
+<span class="go">    &#39;4-&gt;3&#39;: &#39;gamma_A&#39;,</span>
+<span class="go">    &#39;4-&gt;5&#39;: &#39;gamma_spin + gamma_R&#39;,</span>
+<span class="go">    &#39;5-&gt;4&#39;: &#39;gamma_spin&#39;,</span>
+<span class="go">    &#39;0-&gt;3&#39;: &#39;m_op[0]&#39;,</span>
+<span class="go">    &#39;1-&gt;4&#39;: &#39;m_op[1]&#39;,</span>
+<span class="go">    &#39;2-&gt;5&#39;: &#39;m_op[2]&#39;,</span>
+<span class="go">    &#39;3-&gt;0&#39;: &#39;gamma_det&#39;,</span>
+<span class="go">    &#39;4-&gt;1&#39;: &#39;gamma_det&#39;,</span>
+<span class="go">    &#39;5-&gt;2&#39;: &#39;gamma_det&#39;</span>
+<span class="go">}</span>
+</pre></div>
+</div>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System.first_matrix_step">
+<span class="sig-name descname"><span class="pre">first_matrix_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System.first_matrix_step" title="Link to this definition">¶</a></dt>
+<dd><p>Helper method to move function out of the class. njit is not working within classes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System.matrix_step">
+<span class="sig-name descname"><span class="pre">matrix_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System.matrix_step" title="Link to this definition">¶</a></dt>
+<dd><p>Helper method to move function out of the class. njit is not working within classes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System.plot_all">
+<span class="sig-name descname"><span class="pre">plot_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System.plot_all" title="Link to this definition">¶</a></dt>
+<dd><p>Method for quick plotting of polyspectra</p>
+<section id="id6">
+<h3>Parameters<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>f_max<span class="classifier">float</span></dt><dd><p>Maximum frequencies upto which the spectra should be plotted</p>
+</dd>
+</dl>
+</section>
+<section id="id7">
+<h3>Returns<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
+<p>Returns matplotlib figure</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System.replicate_and_extend_rates">
+<span class="sig-name descname"><span class="pre">replicate_and_extend_rates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System.replicate_and_extend_rates" title="Link to this definition">¶</a></dt>
+<dd><p>Replicates the rates dictionary by adding the highest state number + 1 to all states.
+The replicated rates are then added to the original rates dictionary.</p>
+<section id="id8">
+<h3>Parameters<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>rates<span class="classifier">dict</span></dt><dd><p>Original rates dictionary where keys are in ‘from_state-&gt;to_state’ format and values are the rates.</p>
+</dd>
+</dl>
+</section>
+<section id="id9">
+<h3>Returns<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>dict</dt><dd><p>Extended rates dictionary containing both the original and replicated rates.</p>
+</dd>
+</dl>
+</section>
+<section id="id10">
+<h3>Example<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h3>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rates</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;0-&gt;1&#39;</span><span class="p">:</span> <span class="s1">&#39;gamma_in&#39;</span><span class="p">,</span> <span class="s1">&#39;0-&gt;2&#39;</span><span class="p">:</span> <span class="s1">&#39;gamma_in&#39;</span><span class="p">,</span> <span class="s1">&#39;1-&gt;0&#39;</span><span class="p">:</span> <span class="s1">&#39;gamma_A&#39;</span><span class="p">,</span> <span class="s1">&#39;1-&gt;2&#39;</span><span class="p">:</span> <span class="s1">&#39;gamma_spin + gamma_R&#39;</span><span class="p">,</span> <span class="s1">&#39;2-&gt;1&#39;</span><span class="p">:</span> <span class="s1">&#39;gamma_spin&#39;</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">replicate_and_extend_rates</span><span class="p">(</span><span class="n">rates</span><span class="p">)</span>
+<span class="go">{&#39;0-&gt;1&#39;: &#39;gamma_in&#39;,</span>
+<span class="go"> &#39;0-&gt;2&#39;: &#39;gamma_in&#39;,</span>
+<span class="go"> &#39;1-&gt;0&#39;: &#39;gamma_A&#39;,</span>
+<span class="go"> &#39;1-&gt;2&#39;: &#39;gamma_spin + gamma_R&#39;,</span>
+<span class="go"> &#39;2-&gt;1&#39;: &#39;gamma_spin&#39;,</span>
+<span class="go"> &#39;3-&gt;4&#39;: &#39;gamma_in&#39;,</span>
+<span class="go"> &#39;3-&gt;5&#39;: &#39;gamma_in&#39;,</span>
+<span class="go"> &#39;4-&gt;3&#39;: &#39;gamma_A&#39;,</span>
+<span class="go"> &#39;4-&gt;5&#39;: &#39;gamma_spin + gamma_R&#39;,</span>
+<span class="go"> &#39;5-&gt;4&#39;: &#39;gamma_spin&#39;}</span>
+</pre></div>
+</div>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System.save_spec">
+<span class="sig-name descname"><span class="pre">save_spec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System.save_spec" title="Link to this definition">¶</a></dt>
+<dd><p>Save System class with spectral data</p>
+<section id="id11">
+<h3>Parameters<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>path<span class="classifier">str</span></dt><dd><p>Location of file</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System.second_matrix_step">
+<span class="sig-name descname"><span class="pre">second_matrix_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System.second_matrix_step" title="Link to this definition">¶</a></dt>
+<dd><p>Helper method to move function out of the class. njit is not working within classes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.System.transform_m_op">
+<span class="sig-name descname"><span class="pre">transform_m_op</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_m_op</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.System.transform_m_op" title="Link to this definition">¶</a></dt>
+<dd><p>Transforms the input array old_m_op to a new array new_m_op.
+The new array is twice as long, with the original entries set to 0,
+and the new entries set to 1.</p>
+<section id="id12">
+<h3>Parameters<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>old_m_op<span class="classifier">numpy.ndarray</span></dt><dd><p>Original m_op array.</p>
+</dd>
+</dl>
+</section>
+<section id="id13">
+<h3>Returns<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>new_m_op<span class="classifier">numpy.ndarray</span></dt><dd><p>Transformed m_op array.</p>
+</dd>
+</dl>
+</section>
+<section id="id14">
+<h3>Example<a class="headerlink" href="#id14" title="Link to this heading">¶</a></h3>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">old_m_op</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform_m_op</span><span class="p">(</span><span class="n">old_m_op</span><span class="p">)</span>
+<span class="go">array([0, 0, 0, 1, 1, 1])</span>
+</pre></div>
+</div>
+</section>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.pickle_save">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.polyspectra_calculator.</span></span><span class="sig-name descname"><span class="pre">pickle_save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.pickle_save" title="Link to this definition">¶</a></dt>
+<dd><p>Helper function to pickle system objects</p>
+<section id="id15">
+<h2>Parameters<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>path<span class="classifier">str</span></dt><dd><p>Location of saved data</p>
+</dd>
+</dl>
+<p>obj : System obj</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.rates_to_matrix">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.polyspectra_calculator.</span></span><span class="sig-name descname"><span class="pre">rates_to_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.rates_to_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a dictionary of rates to a continuous-time Markov process transition rate matrix.</p>
+<section id="id16">
+<h2>Parameters<a class="headerlink" href="#id16" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>rates<span class="classifier">dict</span></dt><dd><p>Dictionary containing the rates for each transition. Keys should be in the format
+‘from_state-&gt;to_state’ and values should be non-negative floats representing the rates.</p>
+</dd>
+</dl>
+</section>
+<section id="id17">
+<h2>Returns<a class="headerlink" href="#id17" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>np.ndarray</dt><dd><p>A NumPy array representing the transition rate matrix.</p>
+</dd>
+</dl>
+</section>
+<section id="raises">
+<h2>Raises<a class="headerlink" href="#raises" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>ValueError</dt><dd><p>If the keys in the dictionary are not in the ‘from_state-&gt;to_state’ format or if rates are negative.</p>
+</dd>
+</dl>
+</section>
+<section id="id18">
+<h2>Example<a class="headerlink" href="#id18" title="Link to this heading">¶</a></h2>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rates</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;1-&gt;2&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;2-&gt;1&quot;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span> <span class="s2">&quot;2-&gt;3&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rates_to_matrix</span><span class="p">(</span><span class="n">rates</span><span class="p">)</span>
+<span class="go">array([[-0.5,  0.5,  0. ],</span>
+<span class="go">       [ 0.7, -0.9,  0.2],</span>
+<span class="go">       [ 0. ,  0. ,  0. ]])</span>
+</pre></div>
+</div>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.second_term">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.polyspectra_calculator.</span></span><span class="sig-name descname"><span class="pre">second_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">omega1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigvals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_gpu</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.second_term" title="Link to this definition">¶</a></dt>
+<dd><p>For the calculation of the erratum correction terms of the S4.
+Calculates the second sum as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+<section id="id19">
+<h2>Parameters<a class="headerlink" href="#id19" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>enable_gpu<span class="classifier">bool</span></dt><dd><p>Specify if GPU should be used</p>
+</dd>
+<dt>omega1<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega2<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega3<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>s_k<span class="classifier">array</span></dt><dd><p>Array calculated with :func:small_s</p>
+</dd>
+<dt>eigvals<span class="classifier">array</span></dt><dd><p>Eigenvalues of the Liouvillian</p>
+</dd>
+</dl>
+</section>
+<section id="id20">
+<h2>Returns<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out_sum<span class="classifier">array</span></dt><dd><p>Second correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.small_s">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.polyspectra_calculator.</span></span><span class="sig-name descname"><span class="pre">small_s</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho_steady</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_prim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigvecs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigvec_inv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_gpu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero_ind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_zero_mat</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.small_s" title="Link to this definition">¶</a></dt>
+<dd><p>For the calculation of the erratum correction terms of the S4.
+Calculates the small s (Eq. 7) from 10.1103/PhysRevB.102.119901</p>
+<section id="id21">
+<h2>Parameters<a class="headerlink" href="#id21" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>zero_ind<span class="classifier">int</span></dt><dd><p>Index of the steadystate eigenvector</p>
+</dd>
+<dt>enable_gpu<span class="classifier">bool</span></dt><dd><p>Specify if GPU should be used</p>
+</dd>
+<dt>gpu_zero_mat<span class="classifier">af array</span></dt><dd><p>Zero array stored on the GPU</p>
+</dd>
+<dt>rho_steady<span class="classifier">array</span></dt><dd><p>A &#64; Steadystate density matrix of the system</p>
+</dd>
+<dt>a_prim<span class="classifier">array</span></dt><dd><p>Super operator A’ as defined in 10.1103/PhysRevB.98.205143</p>
+</dd>
+<dt>eigvecs<span class="classifier">array</span></dt><dd><p>Eigenvectors of the Liouvillian</p>
+</dd>
+<dt>eigvec_inv<span class="classifier">array</span></dt><dd><p>The inverse eigenvectors of the Liouvillian</p>
+</dd>
+<dt>reshape_ind<span class="classifier">array</span></dt><dd><p>Indices that give the trace of a flattened matrix.</p>
+</dd>
+</dl>
+</section>
+<section id="id22">
+<h2>Returns<a class="headerlink" href="#id22" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>s_k<span class="classifier">array</span></dt><dd><p>Small s (Eq. 7) from 10.1103/PhysRevB.102.119901</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.markovanalyzer.polyspectra_calculator.third_term">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.polyspectra_calculator.</span></span><span class="sig-name descname"><span class="pre">third_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">omega1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigvals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_gpu</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.polyspectra_calculator.third_term" title="Link to this definition">¶</a></dt>
+<dd><p>For the calculation of the erratum correction terms of the S4.
+Calculates the third sum as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+<section id="id23">
+<h2>Parameters<a class="headerlink" href="#id23" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>enable_gpu<span class="classifier">bool</span></dt><dd><p>Specify if GPU should be used</p>
+</dd>
+<dt>omega1<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega2<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega3<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>s_k<span class="classifier">array</span></dt><dd><p>Array calculated with :func:small_s</p>
+</dd>
+<dt>eigvals<span class="classifier">array</span></dt><dd><p>Eigenvalues of the Liouvillian</p>
+</dd>
+</dl>
+</section>
+<section id="id24">
+<h2>Returns<a class="headerlink" href="#id24" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out_sum<span class="classifier">array</span></dt><dd><p>Third correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function" id="module-src.markovanalyzer.fitting_tools">
+<dt class="sig sig-object py" id="src.markovanalyzer.fitting_tools.arcsinh_scaling">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.fitting_tools.</span></span><span class="sig-name descname"><span class="pre">arcsinh_scaling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arcsinh_const</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_err_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_err_m</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.fitting_tools.arcsinh_scaling" title="Link to this definition">¶</a></dt>
+<dd><p>Helper function to improve visibility in plotting (similar to a log scale but also works for negative values)</p>
+<section id="id25">
+<h2>Parameters<a class="headerlink" href="#id25" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>s_data<span class="classifier">array</span></dt><dd><p>spectral values of any order</p>
+</dd>
+<dt>arcsinh_const<span class="classifier">float</span></dt><dd><p>these parameters sets the rescaling amount (the smaller, the stronger the rescaling)</p>
+</dd>
+<dt>order<span class="classifier">int</span></dt><dd><p>important since the error arrays are called differently in the second-order case</p>
+</dd>
+<dt>s_err<span class="classifier">array</span></dt><dd><p>spectral errors of order 3 or 4</p>
+</dd>
+<dt>s_err_p<span class="classifier">array</span></dt><dd><p>spectral values + error of order 2</p>
+</dd>
+<dt>s_err_m<span class="classifier">array</span></dt><dd><p>spectral values - error of order 2</p>
+</dd>
+</dl>
+</section>
+<section id="id26">
+<h2>Returns<a class="headerlink" href="#id26" title="Link to this heading">¶</a></h2>
+</section>
+</dd></dl>
+
+<dl class="py function" id="module-src.markovanalyzer.gpu_backend">
+<span id="module-src.markovanalyzer.forward"></span><dt class="sig sig-object py" id="src.markovanalyzer.gpu_backend.second_term_gpu">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.gpu_backend.</span></span><span class="sig-name descname"><span class="pre">second_term_gpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">omega1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigvals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.gpu_backend.second_term_gpu" title="Link to this definition">¶</a></dt>
+<dd><p>For the calculation of the erratum correction terms of the S4.
+Calculates the second sum as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+<section id="id27">
+<h2>Parameters<a class="headerlink" href="#id27" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>omega1<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega2<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega3<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>s_k<span class="classifier">array</span></dt><dd><p>Array calculated with :func:small_s</p>
+</dd>
+<dt>eigvals<span class="classifier">array</span></dt><dd><p>Eigenvalues of the Liouvillian</p>
+</dd>
+</dl>
+</section>
+<section id="id28">
+<h2>Returns<a class="headerlink" href="#id28" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out_sum<span class="classifier">array</span></dt><dd><p>Second correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.markovanalyzer.gpu_backend.third_term_gpu">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.gpu_backend.</span></span><span class="sig-name descname"><span class="pre">third_term_gpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">omega1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigvals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.gpu_backend.third_term_gpu" title="Link to this definition">¶</a></dt>
+<dd><p>For the calculation of the erratum correction terms of the S4.
+Calculates the third sum as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+<section id="id29">
+<h2>Parameters<a class="headerlink" href="#id29" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>omega1<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega2<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega3<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>s_k<span class="classifier">array</span></dt><dd><p>Array calculated with :func:small_s</p>
+</dd>
+<dt>eigvals<span class="classifier">array</span></dt><dd><p>Eigenvalues of the Liouvillian</p>
+</dd>
+</dl>
+</section>
+<section id="id30">
+<h2>Returns<a class="headerlink" href="#id30" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out_sum<span class="classifier">array</span></dt><dd><p>Third correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function" id="module-src.markovanalyzer.model_comparison_tools">
+<dt class="sig sig-object py" id="src.markovanalyzer.model_comparison_tools.compare_models">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.model_comparison_tools.</span></span><span class="sig-name descname"><span class="pre">compare_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.model_comparison_tools.compare_models" title="Link to this definition">¶</a></dt>
+<dd><p>Compare two lmfit.MinimizerResult objects.</p>
+<p>Parameters:
+- result1: lmfit.MinimizerResult for the simpler model
+- result2: lmfit.MinimizerResult for the complex model</p>
+<p>Returns:
+- A dictionary with AIC, BIC for each model and the p-value for the Likelihood Ratio Test</p>
+</dd></dl>
+
+<dl class="py function" id="module-src.markovanalyzer.njit_backend">
+<dt class="sig sig-object py" id="src.markovanalyzer.njit_backend.second_term_njit">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.njit_backend.</span></span><span class="sig-name descname"><span class="pre">second_term_njit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">omega1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigvals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.njit_backend.second_term_njit" title="Link to this definition">¶</a></dt>
+<dd><p>For the calculation of the erratum correction terms of the S4.
+Calculates the second sum as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+<section id="id31">
+<h2>Parameters<a class="headerlink" href="#id31" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>omega1<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega2<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega3<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>s_k<span class="classifier">array</span></dt><dd><p>Array calculated with :func:small_s</p>
+</dd>
+<dt>eigvals<span class="classifier">array</span></dt><dd><p>Eigenvalues of the Liouvillian</p>
+</dd>
+</dl>
+</section>
+<section id="id32">
+<h2>Returns<a class="headerlink" href="#id32" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out_sum<span class="classifier">array</span></dt><dd><p>Second correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.markovanalyzer.njit_backend.third_term_njit">
+<span class="sig-prename descclassname"><span class="pre">src.markovanalyzer.njit_backend.</span></span><span class="sig-name descname"><span class="pre">third_term_njit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">omega1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eigvals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.markovanalyzer.njit_backend.third_term_njit" title="Link to this definition">¶</a></dt>
+<dd><p>For the calculation of the erratum correction terms of the S4.
+Calculates the third sum as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+<section id="id33">
+<h2>Parameters<a class="headerlink" href="#id33" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>omega1<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega2<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>omega3<span class="classifier">float</span></dt><dd><p>Frequency of interest</p>
+</dd>
+<dt>s_k<span class="classifier">array</span></dt><dd><p>Array calculated with :func:small_s</p>
+</dd>
+<dt>eigvals<span class="classifier">array</span></dt><dd><p>Eigenvalues of the Liouvillian</p>
+</dd>
+</dl>
+</section>
+<section id="id34">
+<h2>Returns<a class="headerlink" href="#id34" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>out_sum<span class="classifier">array</span></dt><dd><p>Third correction term as defined in Eq. 109 in 10.1103/PhysRevB.102.119901.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">MarkovAnalyzer</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Code Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.polyspectra_calculator.System"><code class="docutils literal notranslate"><span class="pre">System</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.polyspectra_calculator.pickle_save"><code class="docutils literal notranslate"><span class="pre">pickle_save()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.polyspectra_calculator.rates_to_matrix"><code class="docutils literal notranslate"><span class="pre">rates_to_matrix()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.polyspectra_calculator.second_term"><code class="docutils literal notranslate"><span class="pre">second_term()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.polyspectra_calculator.small_s"><code class="docutils literal notranslate"><span class="pre">small_s()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.polyspectra_calculator.third_term"><code class="docutils literal notranslate"><span class="pre">third_term()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.fitting_tools.arcsinh_scaling"><code class="docutils literal notranslate"><span class="pre">arcsinh_scaling()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.gpu_backend.second_term_gpu"><code class="docutils literal notranslate"><span class="pre">second_term_gpu()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.gpu_backend.third_term_gpu"><code class="docutils literal notranslate"><span class="pre">third_term_gpu()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.model_comparison_tools.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.njit_backend.second_term_njit"><code class="docutils literal notranslate"><span class="pre">second_term_njit()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#src.markovanalyzer.njit_backend.third_term_njit"><code class="docutils literal notranslate"><span class="pre">third_term_njit()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to MarkovAnalyzer’s documentation!</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2021, Markus Sifft, Daniel Hägele.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/code.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
