@@ -243,6 +243,7 @@ def pickle_save(path, obj):
     ----------
     path : str
         Location of saved data
+
     obj : System obj
 
     """

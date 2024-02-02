@@ -27,6 +27,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from markovanalyzer.foreward import *
+from markovanalyzer.forward import *
 from markovanalyzer.fitting_tools import *
 from markovanalyzer.polyspectra_calculator import *
