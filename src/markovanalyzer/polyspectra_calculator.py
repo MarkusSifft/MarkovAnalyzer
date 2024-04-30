@@ -43,6 +43,8 @@ from signalsnap.plot_config import PlotConfig
 from .njit_backend import *
 from .gpu_backend import *
 
+import matplotlib.pyplot as plt
+
 
 #  from pympler import asizeof
 
@@ -394,6 +396,11 @@ class System:  # (SpectrumCalculator):
         # ------- Enable GPU for large systems -------
         self.enable_gpu = False
         self.gpu_0 = 0
+
+        # ------- for unreavaling simulation -------
+        self.simulated_observed_values = None
+        self.simulated_states = None
+        self.simulated_jump_times = None
 
     def transform_m_op(self, old_m_op):
         """
@@ -922,3 +929,64 @@ class System:  # (SpectrumCalculator):
         for i in range(mat_size):
             a_w3[i, :] = a_w[i:i + mat_size]
         return a_w3.conj()
+
+    def simulate_trace(self, initial_dist, total_time):
+        """
+        Simulates a continuous-time Markov chain.
+
+        Parameters:
+        - initial_state: Initial distribution of states (numpy array).
+        - total_time: Total time to simulate.
+
+        Returns:
+        - simulated_jump_times: Times at which transitions occur.
+        - simulated_states: States at these times.
+        - simulated_observed_values: Observed values at these times.
+        """
+
+        # Normalize transtion_matrix to get transition probabilities and compute holding times
+
+        holding_rates = -np.diag(self.transtion_matrix.T)
+        transition_probs = self.transtion_matrix.T / holding_rates[:, np.newaxis]
+        np.fill_diagonal(transition_probs, 0)
+
+        current_time = 0.0
+        current_state = np.random.choice(len(initial_dist), p=initial_dist)
+        self.simulated_jump_times = [current_time]
+        self.simulated_states = [current_state]
+        self.simulated_observed_values = [self.measurement_op[current_state]]
+
+        while current_time < total_time:
+            rate = holding_rates[current_state]
+            time_to_next = np.random.exponential(1 / rate)
+            current_time += time_to_next
+
+            if current_time > total_time:
+                break
+
+            # Transition to the next state
+            next_state = np.random.choice(len(transition_probs[current_state]), p=transition_probs[current_state])
+            current_state = next_state
+
+            self.simulated_jump_times.append(current_time)
+            self.simulated_states.append(current_state)
+            self.simulated_observed_values.append(self.measurement_op[current_state])
+
+    def plot_simulation(self):
+        """
+        Plots the observations of a continuous-time Markov chain over time.
+
+        Parameters:
+        - times: List of times at which transitions occur.
+        - observations: List of observed values corresponding to the states at these times.
+        """
+        plt.figure(figsize=(10, 5))
+        plt.step(self.simulated_jump_times, self.simulated_observed_values, where='post', label='Observation', linewidth=2)
+        plt.title('Observations over Time')
+        plt.xlabel('Time')
+        plt.ylabel('Observation')
+        plt.ylim(min(self.simulated_observed_values) - 0.1 * abs(min(self.simulated_observed_values)), max(self.simulated_observed_values) + 0.1 * abs(max(self.simulated_observed_values)))
+        plt.legend()
+        plt.show()
+
+
