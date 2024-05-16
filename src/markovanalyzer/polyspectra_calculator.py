@@ -503,7 +503,8 @@ class System:  # (SpectrumCalculator):
                                                      self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
                                                      self.gpu_0)
 
-    def calculate_order_4_inner_loop(self, counter, omegas, rho, spec_data, rho_prim_sum, n_states, second_term_mat, third_term_mat):
+    def calculate_order_4_inner_loop(self, counter, omegas, rho, spec_data, rho_prim_sum, n_states, second_term_mat,
+                                     third_term_mat):
         if self.enable_gpu:
             return calculate_order_4_inner_loop_gpu(counter, omegas, rho, rho_prim_sum, n_states, self.A_prim,
                                                     self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
@@ -514,7 +515,8 @@ class System:  # (SpectrumCalculator):
                                                      self.eigvecs, self.eigvals, self.eigvecs_inv, self.zero_ind,
                                                      self.gpu_0, self.s_k)
 
-    def plot(self, plot_orders=(2, 3, 4), s2_f=None, s2_data=None, s3_f=None, s3_data=None, s4_f=None, s4_data=None):
+    def plot(self, plot_orders=(2, 3, 4), imag_plot=False, s2_f=None, s2_data=None, s3_f=None, s3_data=None, s4_f=None,
+             s4_data=None):
 
         if s2_f is None:
             s2_f = self.freq[2]
@@ -530,7 +532,7 @@ class System:  # (SpectrumCalculator):
         if s4_data is None:
             s4_data = self.S[4]
 
-        config = PlotConfig(plot_orders=plot_orders, s2_f=s2_f, s2_data=s2_data, s3_f=s3_f,
+        config = PlotConfig(plot_orders=plot_orders, imag_plot=imag_plot, s2_f=s2_f, s2_data=s2_data, s3_f=s3_f,
                             s3_data=s3_data, s4_f=s4_f, s4_data=s4_data)
 
         self.f_lists = {1: None, 2: None, 3: None, 4: None}
@@ -743,13 +745,57 @@ class System:  # (SpectrumCalculator):
 
         self.s_k = s_k
 
-        spec_data = self.calculate_order_4_inner_loop(counter, omegas, rho, spec_data, rho_prim_sum, n_states, second_term_mat, third_term_mat)
+        spec_data = self.calculate_order_4_inner_loop(counter, omegas, rho, spec_data, rho_prim_sum, n_states,
+                                                      second_term_mat, third_term_mat)
 
         if np.max(np.abs(np.imag(np.real_if_close(_full_trispec(spec_data))))) > 0 and verbose:
             print('Trispectrum might have an imaginary part')
 
         order = 4
         self.S[order] = _full_trispec(spec_data)
+
+    def calculate_rho_steady(self):
+        self.eigvals, self.eigvecs = eig(self.transtion_matrix.astype(dtype=np.complex128))
+        self.eigvecs_inv = inv(self.eigvecs)
+
+        self.eigvals = self.eigvals.astype(dtype=np.complex128)
+        self.eigvecs = self.eigvecs.astype(dtype=np.complex128)
+        self.eigvecs_inv = self.eigvecs_inv.astype(dtype=np.complex128)
+
+        self.zero_ind = np.argmax(np.real(self.eigvals))
+
+        rho_steady = self.eigvecs[:, self.zero_ind]
+        rho_steady = rho_steady / np.sum(rho_steady)
+
+        self.rho_steady = rho_steady
+        return rho_steady
+
+    def calculate_WTD(self, t, start_state, end_state, steady_state_population_end_state):
+
+        wtd = np.zeros_like(t)
+
+        self.eigvals, self.eigvecs = eig(self.transtion_matrix.astype(dtype=np.complex128))
+        self.eigvecs_inv = inv(self.eigvecs)
+
+        self.eigvals = self.eigvals.astype(dtype=np.complex128)
+        self.eigvecs = self.eigvecs.astype(dtype=np.complex128)
+        self.eigvecs_inv = self.eigvecs_inv.astype(dtype=np.complex128)
+
+        self.zero_ind = np.argmax(np.real(self.eigvals))
+
+        rho_steady = self.eigvecs[:, self.zero_ind]
+        rho_steady = rho_steady / np.sum(rho_steady)
+
+        self.rho_steady = rho_steady
+
+        for i in tqdm_notebook(range(t.shape[0])):
+            diagonal = np.exp(self.eigvals * t[i])
+            diagonal = np.diag(diagonal)
+            self.G = self.eigvecs @ diagonal @ self.eigvecs_inv
+
+            wtd[i] = end_state.T @ self.G @ start_state
+
+        return steady_state_population_end_state - wtd
 
     def calculate_one_spectrum(self, f_data, order, bar=True, verbose=False, beta_offset=True,
                                enable_gpu=False, cache_trispec=True):
@@ -981,12 +1027,12 @@ class System:  # (SpectrumCalculator):
         - observations: List of observed values corresponding to the states at these times.
         """
         plt.figure(figsize=(10, 5))
-        plt.step(self.simulated_jump_times, self.simulated_observed_values, where='post', label='Observation', linewidth=2)
+        plt.step(self.simulated_jump_times, self.simulated_observed_values, where='post', label='Observation',
+                 linewidth=2)
         plt.title('Observations over Time')
         plt.xlabel('Time')
         plt.ylabel('Observation')
-        plt.ylim(min(self.simulated_observed_values) - 0.1 * abs(min(self.simulated_observed_values)), max(self.simulated_observed_values) + 0.1 * abs(max(self.simulated_observed_values)))
+        plt.ylim(min(self.simulated_observed_values) - 0.1 * abs(min(self.simulated_observed_values)),
+                 max(self.simulated_observed_values) + 0.1 * abs(max(self.simulated_observed_values)))
         plt.legend()
         plt.show()
-
-
