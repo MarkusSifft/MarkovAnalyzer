@@ -289,7 +289,7 @@ class FitSystem:
                 self.display_params(result.params.valuesdict().copy(), self.initial_params, errors)
 
         else:
-            print('Parameter fit_order must be: (order_wise, resolution_wise)')
+            print('Parameter fit_order must be: (order_based, resolution_based)')
 
         return result
 

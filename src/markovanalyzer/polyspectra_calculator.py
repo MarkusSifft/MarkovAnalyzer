@@ -29,7 +29,8 @@
 
 import numpy as np
 from numpy.linalg import inv, eig
-from scipy.linalg import eig
+from scipy.linalg import eig, expm
+from numba import njit
 
 from tqdm import tqdm_notebook
 import pickle
@@ -316,6 +317,23 @@ def rates_to_matrix(rates):
         matrix[i, i] = -sum(matrix[i])
 
     return matrix.T
+
+
+@njit
+def simulate_markov_chain(cumulative_P, initial_state, num_steps):
+    """ Simulate the Markov chain using Numba for acceleration.
+    """
+    states = np.empty(num_steps + 1, dtype=np.int32)  # Pre-allocate array for speed
+    states[0] = initial_state
+    current_state = initial_state
+
+    for i in range(1, num_steps + 1):
+        random_value = np.random.random()  # Generate a single random number
+        # Find the next state using searchsorted
+        current_state = np.searchsorted(cumulative_P[current_state], random_value)
+        states[i] = current_state
+
+    return states
 
 
 class System:  # (SpectrumCalculator):
@@ -770,9 +788,19 @@ class System:  # (SpectrumCalculator):
         self.rho_steady = rho_steady
         return rho_steady
 
-    def calculate_WTD(self, t, start_state, end_state, steady_state_population_end_state):
+    def calculate_WTD(self, t, down_states, up_states):
 
-        wtd = np.zeros_like(t)
+        temp1 = self.transtion_matrix - np.diag(np.diag(self.transtion_matrix))
+        jump_op_in = np.zeros_like(temp1)
+        jump_op_in[up_states, down_states] = temp1[up_states, down_states]
+        jump_op_out = np.zeros_like(temp1)
+        jump_op_out[down_states, up_states] = temp1[down_states, up_states]
+
+        self.jump_op_in = jump_op_in
+        self.jump_op_out = jump_op_out
+
+        wtd_in = np.zeros_like(t)
+        wtd_out = np.zeros_like(t)
 
         self.eigvals, self.eigvecs = eig(self.transtion_matrix.astype(dtype=np.complex128))
         self.eigvecs_inv = inv(self.eigvecs)
@@ -789,13 +817,13 @@ class System:  # (SpectrumCalculator):
         self.rho_steady = rho_steady
 
         for i in tqdm_notebook(range(t.shape[0])):
-            diagonal = np.exp(self.eigvals * t[i])
-            diagonal = np.diag(diagonal)
-            self.G = self.eigvecs @ diagonal @ self.eigvecs_inv
+            self.G = expm((self.transtion_matrix - jump_op_in - jump_op_out) * t[i])
+            # self.G = self.eigvecs @ diagonal @ self.eigvecs_inv
 
-            wtd[i] = end_state.T @ self.G @ start_state
+            wtd_in[i] = np.sum(jump_op_out @ self.G @ jump_op_in @ rho_steady) / np.sum(jump_op_in @ rho_steady)
+            wtd_out[i] = np.sum(jump_op_in @ self.G @ jump_op_out @ rho_steady) / np.sum(jump_op_out @ rho_steady)
 
-        return steady_state_population_end_state - wtd
+        return wtd_in, wtd_out
 
     def calculate_one_spectrum(self, f_data, order, bar=True, verbose=False, beta_offset=True,
                                enable_gpu=False, cache_trispec=True):
@@ -1036,3 +1064,19 @@ class System:  # (SpectrumCalculator):
                  max(self.simulated_observed_values) + 0.1 * abs(max(self.simulated_observed_values)))
         plt.legend()
         plt.show()
+
+    def simulate_discrete_trace(self, total_time, sampling_rate, initial_state=0):
+        num_steps = int(total_time * sampling_rate)
+
+        # Create the discrete-time transition matrix
+        P = expm(self.transtion_matrix.T * 1 / sampling_rate)
+        cumulative_P = np.cumsum(P, axis=1)
+
+        # Simulate the Markov chain
+        states = simulate_markov_chain(cumulative_P, initial_state, num_steps)
+
+        measurement = np.zeros(len(states))
+        for i, state in enumerate(states):
+            measurement[i] = self.measurement_op[state]
+
+        return states, measurement

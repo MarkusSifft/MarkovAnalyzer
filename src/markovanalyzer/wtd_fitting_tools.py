@@ -1,0 +1,97 @@
+# This file is part of MarkovAnalyzer
+#
+#    Copyright (c) 2020 and later, Markus Sifft and Daniel Hägele.
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
+#
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.ndimage.filters import gaussian_filter
+from lmfit import Parameters, Minimizer
+
+
+class WtdFitter:
+    def __init__(self, parameter, set_system, t_up_to_down, t_down_to_up, down_states, up_states
+                 , wtd_up_to_down_mean, wtd_up_to_down_std = None, wtd_down_to_up_mean = None, wtd_down_to_up_std= None):
+        self.parameter = parameter
+        self.set_system = set_system
+        self.t_up_to_down = t_up_to_down
+        self.t_down_to_up = t_down_to_up
+        self.down_states = down_states
+        self.up_states = up_states
+        self.wtd_up_to_down_mean = wtd_up_to_down_mean
+        self.wtd_up_to_down_std = wtd_up_to_down_std
+        self.wtd_down_to_up_mean = wtd_down_to_up_mean
+        self.wtd_down_to_up_std = wtd_down_to_up_std
+        self.counter = 0
+
+    def perform_wtd_fit(self, parameter):
+        fit_params = Parameters()
+
+        for i, name in enumerate(parameter):
+            fit_params.add(name, value=parameter[name][0] / 1e3, min=parameter[name][1] / 1e3, max=parameter[name][2] / 1e3,
+                           vary=parameter[name][3])
+
+        mini = Minimizer(self.objective, fit_params)
+        out = mini.minimize(method='leastsq', xtol=1e-8, ftol=1e-8, )
+
+        return out
+
+    def objective(self, fit_params):
+        markov_system = self.set_system(fit_params)
+
+        # ----- calculation in kHz ------
+        model_wtd_up_to_down, _ = markov_system.calculate_WTD(1e3 * self.t_up_to_down, self.down_states, self.up_states)
+        _, model_wtd_down_to_up = markov_system.calculate_WTD(1e3 * self.t_down_to_up, self.down_states, self.up_states)
+
+        # ----- conversion to Hz ------
+        model_wtd_up_to_down *= 1e3
+        model_wtd_down_to_up *= 1e3
+
+        resid = []
+
+        if self.wtd_down_to_up_std is not None and self.wtd_up_to_down_std is not None:
+            resid.append(np.abs(model_wtd_up_to_down - self.wtd_up_to_down_mean) / self.wtd_up_to_down_std)
+            resid.append(np.abs(model_wtd_down_to_up - self.wtd_down_to_up_mean) / self.wtd_down_to_up_std)
+
+        else:
+            resid.append(np.abs(model_wtd_up_to_down - self.wtd_up_to_down_mean))
+            resid.append(np.abs(model_wtd_down_to_up - self.wtd_down_to_up_mean))
+
+        self.counter += 1
+
+        if self.counter % len(fit_params)//2 == 0:
+            fig, ax = plt.subplots(ncols=2, figsize=(14, 4))
+            ax[0].plot(self.t_up_to_down, model_wtd_up_to_down, label='model up -> down')
+            ax[0].plot(self.t_up_to_down, self.wtd_up_to_down_mean, label='meas. up -> down')
+            ax[0].set_yscale('log')
+            ax[1].plot(self.t_down_to_up, model_wtd_down_to_up, label='model down -> up')
+            ax[1].plot(self.t_down_to_up, self.wtd_down_to_up_mean, label='meas. down -> up')
+            plt.yscale('log')
+            plt.show()
+
+        return np.concatenate(resid)
