@@ -257,9 +257,10 @@ class FitSystem:
                     for p in result.params:
                         fit_params[p].value = result.params[p].value
 
-                    errors = {k: result.params[k].stderr for k in result.params.keys()}
-                    self.saved_errors[-1] = errors  # Update the last element with the final errors
-                    self.display_params(result.params.valuesdict().copy(), self.initial_params, errors)
+                    if self.realtime_plot:
+                        errors = {k: result.params[k].stderr for k in result.params.keys()}
+                        self.saved_errors[-1] = errors  # Update the last element with the final errors
+                        self.display_params(result.params.valuesdict().copy(), self.initial_params, errors)
 
         elif fit_modus == 'resolution_based':
 
@@ -289,9 +290,10 @@ class FitSystem:
                 for p in result.params:
                     fit_params[p].value = result.params[p].value
 
-                errors = {k: result.params[k].stderr for k in result.params.keys()}
-                self.saved_errors[-1] = errors  # Update the last element with the final errors
-                self.display_params(result.params.valuesdict().copy(), self.initial_params, errors)
+                if self.realtime_plot:
+                    errors = {k: result.params[k].stderr for k in result.params.keys()}
+                    self.saved_errors[-1] = errors  # Update the last element with the final errors
+                    self.display_params(result.params.valuesdict().copy(), self.initial_params, errors)
 
         else:
             print('Parameter fit_order must be: (order_based, resolution_based)')
