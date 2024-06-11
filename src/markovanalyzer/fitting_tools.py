@@ -63,6 +63,7 @@ class FitSystem:
         self.huber_delta = huber_delta
         self.enable_gpu = enable_gpu
         self.f_unit = f_unit
+        self.realtime_plot = True
 
     def s1(self, system, omegas):
 
@@ -166,7 +167,9 @@ class FitSystem:
                      method='least_squares',
                      fit_modus='order_based', start_order=1, beta_offset=True,
                      fit_orders=(1, 2, 3, 4), show_plot=True,
-                     xtol=1e-6, ftol=1e-6, max_nfev=500, general_weight=(2, 2, 1, 1)):
+                     xtol=1e-6, ftol=1e-6, max_nfev=500, general_weight=(2, 2, 1, 1), realtime_plot=True):
+
+        self.realtime_plot = realtime_plot
 
         # Check if start_order is an integer
         if not isinstance(start_order, int):
@@ -222,10 +225,12 @@ class FitSystem:
                            vary=params_in[name][3])
 
         # Create Widgets
-        self.slider = widgets.IntSlider(value=0, min=0, max=0, description='Iteration:')
-        self.param_text = widgets.HTML()
-        self.out = widgets.Output()
-        display(widgets.VBox([self.slider, self.param_text, self.out]))
+        if self.realtime_plot:
+            self.slider = widgets.IntSlider(value=0, min=0, max=0, description='Iteration:')
+            self.param_text = widgets.HTML()
+            self.out = widgets.Output()
+            display(widgets.VBox([self.slider, self.param_text, self.out]))
+            self.slider.observe(self.slider_cb, names='value')
 
         # Variables to hold states of the fit
         self.saved_params = []
@@ -239,7 +244,7 @@ class FitSystem:
         self.fit_orders = [1, 2, 3]
 
         self.initial_params = fit_params.copy()
-        self.slider.observe(self.slider_cb, names='value')
+
 
         if fit_modus == 'order_based':
             for i in range(len(fit_orders)):
@@ -312,12 +317,13 @@ class FitSystem:
                 self.comp_plot(self.saved_iter[i], self.saved_params[i])
 
     def iter_cb(self, params, iter, resid, *args, **kws):
-        self.true_iter_count += 1
-        if self.true_iter_count % self.num_params == 0:
-            self.saved_params.append(params.valuesdict().copy())
-            self.saved_iter.append(self.true_iter_count // self.num_params)
-            self.update_real_time(self.true_iter_count // self.num_params, params.valuesdict().copy())
-            self.saved_errors.append(None)  # Placeholder for errors
+        if self.realtime_plot:
+            self.true_iter_count += 1
+            if self.true_iter_count % self.num_params == 0:
+                self.saved_params.append(params.valuesdict().copy())
+                self.saved_iter.append(self.true_iter_count // self.num_params)
+                self.update_real_time(self.true_iter_count // self.num_params, params.valuesdict().copy())
+                self.saved_errors.append(None)  # Placeholder for errors
 
     def display_params(self, params, initial_params, errors=None):
         if errors is None:
