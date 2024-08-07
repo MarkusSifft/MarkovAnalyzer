@@ -152,8 +152,8 @@ class WtdFitter:
         markov_system = self.set_system(fit_params)
 
         # ----- calculation in kHz ------
-        model_wtd_up_to_down, _ = markov_system.calculate_WTD(1e3 * self.t_up_to_down, self.down_states, self.up_states)
-        _, model_wtd_down_to_up = markov_system.calculate_WTD(1e3 * self.t_down_to_up, self.down_states, self.up_states)
+        model_wtd_up_to_down, _ = markov_system.calculate_WTD(1e3 * self.t_up_to_down, self.down_states, self.up_states, verbose=self.verbose)
+        _, model_wtd_down_to_up = markov_system.calculate_WTD(1e3 * self.t_down_to_up, self.down_states, self.up_states, verbose=self.verbose)
 
         # ----- conversion to Hz ------
         model_wtd_up_to_down *= 1e3
