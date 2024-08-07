@@ -788,7 +788,7 @@ class System:  # (SpectrumCalculator):
         self.rho_steady = rho_steady
         return rho_steady
 
-    def calculate_WTD(self, t, down_states, up_states):
+    def calculate_WTD(self, t, down_states, up_states, verbose=True):
 
         temp1 = self.transtion_matrix - np.diag(np.diag(self.transtion_matrix))
         jump_op_in = np.zeros_like(temp1)
@@ -816,7 +816,12 @@ class System:  # (SpectrumCalculator):
 
         self.rho_steady = rho_steady
 
-        for i in tqdm_notebook(range(t.shape[0])):
+        if verbose:
+            iterator = tqdm_notebook(range(t.shape[0]))
+        else:
+            iterator = range(t.shape[0])
+
+        for i in iterator:
             self.G = expm((self.transtion_matrix - jump_op_in - jump_op_out) * t[i])
             # self.G = self.eigvecs @ diagonal @ self.eigvecs_inv
 

@@ -37,7 +37,8 @@ from lmfit import Parameters, Minimizer
 class WtdFitter:
     def __init__(self, signal = None, threshold_up = None, threshold_down = None, delta_t = None, monte_carlo = False,
                  parameter = None, set_system = None, t_up_to_down = None, t_down_to_up = None, down_states = None, up_states = None,
-                 wtd_up_to_down_mean = None, wtd_up_to_down_std = None, wtd_down_to_up_mean = None, wtd_down_to_up_std= None):
+                 wtd_up_to_down_mean = None, wtd_up_to_down_std = None, wtd_down_to_up_mean = None, wtd_down_to_up_std= None,
+                 verbose=True):
 
         self.waiting_times_down_to_up = None
         self.waiting_times_up_to_down = None
@@ -58,6 +59,7 @@ class WtdFitter:
         self.wtd_down_to_up_mean = wtd_down_to_up_mean
         self.wtd_down_to_up_std = wtd_down_to_up_std
         self.counter = 0
+        self.verbose = verbose
 
     def calculate_waiting_times(self):
         # Initialize variables
@@ -169,7 +171,7 @@ class WtdFitter:
 
         self.counter += 1
 
-        if self.counter % len(fit_params)//2 == 0:
+        if self.counter % len(fit_params)//2 == 0 and self.verbose:
             fig, ax = plt.subplots(ncols=2, figsize=(14, 4))
             ax[0].plot(self.t_up_to_down, model_wtd_up_to_down, label='model up -> down')
             ax[0].plot(self.t_up_to_down, self.wtd_up_to_down_mean, label='meas. up -> down')
