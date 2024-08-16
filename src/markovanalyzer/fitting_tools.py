@@ -48,11 +48,12 @@ except NameError:
 
 class FitSystem:
 
-    def __init__(self, set_system, f_unit='Hz', huber_loss=False, huber_delta=1, enable_gpu=False):
+    def __init__(self, set_system, f_unit='Hz', huber_loss=False, huber_delta=1, enable_gpu=False, fit_squared_errors=True):
         self.beta_offset = None
         self.set_system = set_system
         self.out = None
         self.measurement_spec = None
+        self.fit_squared_errors = fit_squared_errors
         self.f_list = None
         self.s_list = None
         self.err_list = None
@@ -123,10 +124,12 @@ class FitSystem:
 
             fit_list[order] = self.calc_spec(system, params, order, self.f_list[order])
 
-            resid.append(
-                np.abs(((self.s_list[order] - fit_list[order]) * self.general_weight[
-                    i] / self.err_list[
-                            order]).flatten()))
+            if not self.fit_squared_errors:
+                # ---- residuals with abs (outliers are weighted less) -----
+                resid.append(np.abs(((self.s_list[order] - fit_list[order]) * self.general_weight[i] / self.err_list[order]).flatten()))
+            else:
+                # ---- traditional residuals with squared error
+                resid.append(((self.s_list[order] - fit_list[order])**2 * self.general_weight[i] / self.err_list[order]**2).flatten())
 
         if self.huber_loss:
             out = self.adjusted_huber_residual(np.concatenate(resid))
