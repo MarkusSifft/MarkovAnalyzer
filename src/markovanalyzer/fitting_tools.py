@@ -131,6 +131,7 @@ class FitSystem:
                 # ---- traditional residuals with squared error
                 resid.append(((self.s_list[order] - fit_list[order])**2 * self.general_weight[i] / self.err_list[order]**2).flatten())
 
+
         if self.huber_loss:
             out = self.adjusted_huber_residual(np.concatenate(resid))
         else:
