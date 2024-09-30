@@ -387,10 +387,10 @@ class System:  # (SpectrumCalculator):
         self.measurement_op = measurement_op
 
         if gamma_det is not None and gamma_ph is not None:
-            transition_dict = self.extension_for_single_photon(transition_dict, measurement_op, gamma_ph, gamma_det)
+            self.transition_dict = self.extension_for_single_photon(transition_dict, measurement_op, gamma_ph, gamma_det)
             self.measurement_op = self.transform_m_op(measurement_op)
 
-        self.transtion_matrix = rates_to_matrix(transition_dict)
+        self.transtion_matrix = rates_to_matrix(self.transition_dict)
 
         self.freq = {2: np.array([]), 3: np.array([]), 4: np.array([])}
         self.S = {1: 0, 2: np.array([]), 3: np.array([]), 4: np.array([])}
@@ -438,19 +438,27 @@ class System:  # (SpectrumCalculator):
 
         Example
         -------
-        >>> old_m_op = np.array([1, 0, 0])
+        >>> old_m_op = np.array([1, 0])
         >>> transform_m_op(old_m_op)
-        array([0, 0, 0, 1, 1, 1])
+        array([1, 1, 0, 0])
+
+        >>> old_m_op = np.array([0, 1])
+        >>> transform_m_op(old_m_op)
+        array([0, 0, 1, 1])
         """
 
         # Set all entries in the old_m_op to 0
-        old_m_op_zeroed = np.zeros_like(old_m_op)
+        # old_m_op_zeroed = np.zeros_like(old_m_op)
 
         # Create an array of 1s with the same shape as old_m_op
-        extended_part = np.ones_like(old_m_op) * old_m_op.max()
+        blinking_part = np.ones_like(old_m_op) #* old_m_op.max()
+
+        temp_list = []
+        for bool in old_m_op:
+            temp_list.append(bool * blinking_part)
 
         # Concatenate old_m_op_zeroed and extended_part to form new_m_op
-        new_m_op = np.concatenate((old_m_op_zeroed, extended_part))
+        new_m_op = np.concatenate(temp_list)
 
         return new_m_op
 
