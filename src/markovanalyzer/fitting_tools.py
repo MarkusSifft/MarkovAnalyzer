@@ -74,12 +74,14 @@ class FitSystem:
 
     def s2(self, params, system, omegas):
 
-        spec = system.calculate_one_spectrum(omegas, order=2, bar=False)
+        spec = system.calculate_one_spectrum(omegas, order=2, bar=False, beta_offset=self.beta_offset)
 
         if isinstance(params, np.ndarray):
             return np.real(spec) + params[-1]
-        else:
+        elif 'c' in params:
             return np.real(spec) + params['c']
+        else:
+            return np.real(spec)
 
     def s3(self, system, omegas):
 
