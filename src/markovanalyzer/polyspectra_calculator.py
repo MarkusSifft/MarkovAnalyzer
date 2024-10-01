@@ -438,27 +438,19 @@ class System:  # (SpectrumCalculator):
 
         Example
         -------
-        >>> old_m_op = np.array([1, 0])
+        >>> old_m_op = np.array([1, 0, 0])
         >>> transform_m_op(old_m_op)
-        array([1, 1, 0, 0])
-
-        >>> old_m_op = np.array([0, 1])
-        >>> transform_m_op(old_m_op)
-        array([0, 0, 1, 1])
+        array([0, 0, 0, 1, 1, 1])
         """
 
         # Set all entries in the old_m_op to 0
-        # old_m_op_zeroed = np.zeros_like(old_m_op)
+        old_m_op_zeroed = np.zeros_like(old_m_op)
 
         # Create an array of 1s with the same shape as old_m_op
-        blinking_part = np.ones_like(old_m_op) #* old_m_op.max()
-
-        temp_list = []
-        for bool in old_m_op:
-            temp_list.append(bool * blinking_part)
+        extended_part = np.ones_like(old_m_op) * old_m_op.max()
 
         # Concatenate old_m_op_zeroed and extended_part to form new_m_op
-        new_m_op = np.concatenate(temp_list)
+        new_m_op = np.concatenate((old_m_op_zeroed, extended_part))
 
         return new_m_op
 
