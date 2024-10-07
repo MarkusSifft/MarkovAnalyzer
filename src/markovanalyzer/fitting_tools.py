@@ -111,11 +111,14 @@ class FitSystem:
         self.f_unit = f_unit
         self.realtime_plot = True
 
-    def s1(self, system, omegas):
+    def s1(self, params, system, omegas):
 
         spec = system.calculate_one_spectrum(omegas, order=1, bar=False)
 
-        return np.real(spec)
+        if 'background_photon_rate' in params:
+            return np.real(spec) + params['background_photon_rate']
+        else:
+            return np.real(spec)
 
     def s2(self, params, system, omegas):
 
@@ -125,31 +128,39 @@ class FitSystem:
             return np.real(spec) + params[-1]
         elif 'c' in params:
             return np.real(spec) + params['c']
+        elif 'background_photon_rate' in params:
+            return np.real(spec) + 2*params['background_photon_rate']
         else:
             return np.real(spec)
 
-    def s3(self, system, omegas):
+    def s3(self, params, system, omegas):
 
         spec = system.calculate_one_spectrum(omegas, order=3, bar=False)
 
-        return np.real(spec)
+        if 'background_photon_rate' in params:
+            return np.real(spec) + 6*params['background_photon_rate']
+        else:
+            return np.real(spec)
 
-    def s4(self, system, omegas):
+    def s4(self, params, system, omegas):
 
         spec = system.calculate_one_spectrum(omegas, order=4, bar=False)
 
-        return np.real(spec)
+        if 'background_photon_rate' in params:
+            return np.real(spec) + 24*params['background_photon_rate']
+        else:
+            return np.real(spec)
 
     def calc_spec(self, system, lmfit_params, order, fs=None):
 
         if order == 1:
-            out = self.s1(system, fs)
+            out = self.s1(lmfit_params, system, fs)
         elif order == 2:
             out = self.s2(lmfit_params, system, fs)
         elif order == 3:
-            out = self.s3(system, fs)
+            out = self.s3(lmfit_params, system, fs)
         else:
-            out = self.s4(system, fs)
+            out = self.s4(lmfit_params, system, fs)
 
         return out
 
