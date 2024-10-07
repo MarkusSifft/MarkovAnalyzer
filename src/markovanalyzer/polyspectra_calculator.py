@@ -389,10 +389,11 @@ class System:  # (SpectrumCalculator):
         if gamma_det is not None and gamma_ph is not None:
             self.transition_dict = self.extension_for_single_photon(transition_dict, measurement_op, gamma_ph, gamma_det)
             self.measurement_op = self.transform_m_op(measurement_op)
-            self.transtion_matrix = rates_to_matrix(self.transition_dict)
 
         else:
             self.transition_dict = transition_dict
+
+        self.transtion_matrix = rates_to_matrix(self.transition_dict)
 
         self.freq = {2: np.array([]), 3: np.array([]), 4: np.array([])}
         self.S = {1: 0, 2: np.array([]), 3: np.array([]), 4: np.array([])}
