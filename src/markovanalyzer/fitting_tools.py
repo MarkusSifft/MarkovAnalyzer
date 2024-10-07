@@ -129,7 +129,7 @@ class FitSystem:
         elif 'c' in params:
             return np.real(spec) + params['c']
         elif 'background_photon_rate' in params:
-            return np.real(spec) + 2*params['background_photon_rate']
+            return np.real(spec) - 2*params['background_photon_rate']
         else:
             return np.real(spec)
 
@@ -147,7 +147,7 @@ class FitSystem:
         spec = system.calculate_one_spectrum(omegas, order=4, bar=False)
 
         if 'background_photon_rate' in params:
-            return np.real(spec) + 24*params['background_photon_rate']
+            return np.real(spec) - 24*params['background_photon_rate']
         else:
             return np.real(spec)
 
