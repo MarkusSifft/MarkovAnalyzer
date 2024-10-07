@@ -36,6 +36,16 @@ import matplotlib.colors as colors
 from signalsnap.spectrum_calculator import load_spec
 from matplotlib.colors import LinearSegmentedColormap
 from ipywidgets import widgets
+from .polyspectra_calculator import System
+import pickle
+
+
+def pickle_load(path):
+    f = open(path, mode='rb')
+    obj = pickle.load(f)
+    f.close()
+    return obj
+
 
 try:
     __IPYTHON__
@@ -46,9 +56,44 @@ except NameError:
     is_ipython = False
 
 
+class SinglePhotonFit:
+
+    def __init__(self, model_system, emitting_states, path_to_spectra):
+        self.model_system = model_system
+        self.path_to_spectra = path_to_spectra
+        self.emitting_states = np.array(emitting_states)
+
+    def start_fitting(self, parameter, f_min=None, f_max_2=None, f_max_3=None, f_max_4=None,
+                      xtol=1e-8, ftol=1e-8, show_plot=True,
+                      fit_modus='resolution_based', start_order=1,
+                      fit_orders=(1, 2, 3, 4)):
+        system_fit = FitSystem(self.set_system)
+
+        result = system_fit.complete_fit(self.path_to_spectra, parameter, f_min=f_min, f_max_2=f_max_2, f_max_3=f_max_3,
+                                         f_max_4=f_max_4,
+                                         method='least_squares', xtol=xtol, ftol=ftol, show_plot=show_plot,
+                                         fit_modus=fit_modus, start_order=start_order,
+                                         fit_orders=fit_orders, beta_offset=False)
+
+        return result
+
+    def set_system(self, params):
+        gamma_ph = params['gamma_ph']
+        gamma_det = 1e10 * max([value for key, value in params.items() if key != "c"])
+
+        rates = self.model_system(params)
+
+        m_op = gamma_det * self.emitting_states
+
+        markov_system = System(rates, m_op, gamma_ph, gamma_det)
+
+        return markov_system
+
+
 class FitSystem:
 
-    def __init__(self, set_system, f_unit='Hz', huber_loss=False, huber_delta=1, enable_gpu=False, fit_squared_errors=True):
+    def __init__(self, set_system, f_unit='Hz', huber_loss=False, huber_delta=1, enable_gpu=False,
+                 fit_squared_errors=True):
         self.beta_offset = None
         self.set_system = set_system
         self.out = None
@@ -128,11 +173,12 @@ class FitSystem:
 
             if not self.fit_squared_errors:
                 # ---- residuals with abs (outliers are weighted less) -----
-                resid.append(np.abs(((self.s_list[order] - fit_list[order]) * self.general_weight[i] / self.err_list[order]).flatten()))
+                resid.append(np.abs(
+                    ((self.s_list[order] - fit_list[order]) * self.general_weight[i] / self.err_list[order]).flatten()))
             else:
                 # ---- traditional residuals with squared error
-                resid.append(((self.s_list[order] - fit_list[order])**2 * self.general_weight[i] / self.err_list[order]**2).flatten())
-
+                resid.append(((self.s_list[order] - fit_list[order]) ** 2 * self.general_weight[i] / self.err_list[
+                    order] ** 2).flatten())
 
         if self.huber_loss:
             out = self.adjusted_huber_residual(np.concatenate(resid))
@@ -250,7 +296,6 @@ class FitSystem:
         self.fit_orders = [1, 2, 3]
 
         self.initial_params = fit_params.copy()
-
 
         if fit_modus == 'order_based':
             for i in range(len(fit_orders)):
