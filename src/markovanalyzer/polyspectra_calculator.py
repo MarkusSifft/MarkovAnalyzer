@@ -31,6 +31,7 @@ import numpy as np
 from numpy.linalg import inv, eig
 from scipy.linalg import eig, expm
 from numba import njit
+from numba.typed import List
 
 from tqdm import tqdm_notebook
 import pickle
@@ -50,62 +51,33 @@ import matplotlib.pyplot as plt
 #  from pympler import asizeof
 
 
+# Numba-compatible function to sample from a discrete distribution
 @njit
-def weighted_choice(probabilities):
-    """
-    Select an index based on given probabilities using cumulative sum and searchsorted.
-
-    Parameters:
-    - probabilities: A 1D numpy array of probabilities.
-
-    Returns:
-    - index: Chosen index based on the probabilities.
-    """
-    cumulative_probabilities = np.cumsum(probabilities)
-    random_value = np.random.random()
-    index = np.searchsorted(cumulative_probabilities, random_value)
-    return index
+def sample_discrete(cdf):
+    rand = np.random.uniform(0, 1)
+    return np.searchsorted(cdf, rand)
 
 
+# Numba-compiled function for simulation
 @njit
-def simulate_trace_numba(initial_dist, total_time, transition_matrix, measurement_op, single_photon_modus,
-                         measurement_op_no_photon_emission):
-    """
-    Simulates a continuous-time Markov chain using Numba for acceleration.
-
-    Parameters:
-    - initial_dist: Initial distribution of states (numpy array).
-    - total_time: Total time to simulate.
-    - transition_matrix: Transition matrix without photon emission.
-    - measurement_op: Measurement operator.
-    - single_photon_modus: Boolean for single photon mode.
-    - measurement_op_no_photon_emission: Measurement operator without photon emission.
-
-    Returns:
-    - simulated_jump_times: Times at which transitions occur.
-    - simulated_states: States at these times.
-    - simulated_observed_values: Observed values at these times.
-    """
-
-    holding_rates = -np.diag(transition_matrix.T)
-    transition_probs = transition_matrix.T / holding_rates[:, np.newaxis]
-
-    # Replace diagonal elements with zero as in original function
-    for i in range(len(transition_probs)):
-        transition_probs[i, i] = 0
-
+def simulate_trace_numba(initial_dist_cdf, total_time, transition_probs_cdf, holding_rates,
+                         single_photon_modus, measurement_op, measurement_op_no_photon_emission):
     current_time = 0.0
-    # Replace np.random.choice with a custom function for Numba compatibility
-    current_state = weighted_choice(initial_dist)
+    n_states = len(initial_dist_cdf)
+    current_state = sample_discrete(initial_dist_cdf)
 
-    simulated_jump_times = [current_time]
-    simulated_states = [current_state]
+    simulated_jump_times = List()
+    simulated_states = List()
+    simulated_observed_values = List()
+
+    simulated_jump_times.append(current_time)
+    simulated_states.append(current_state)
 
     if single_photon_modus:
         state_numbering_array = np.arange(len(measurement_op_no_photon_emission))
-        simulated_observed_values = [state_numbering_array[current_state]]
+        simulated_observed_values.append(state_numbering_array[current_state])
     else:
-        simulated_observed_values = [measurement_op[current_state]]
+        simulated_observed_values.append(measurement_op[current_state])
 
     while current_time < total_time:
         rate = holding_rates[current_state]
@@ -115,8 +87,8 @@ def simulate_trace_numba(initial_dist, total_time, transition_matrix, measuremen
         if current_time > total_time:
             break
 
-        # Use the weighted_choice function to choose the next state based on transition probabilities
-        next_state = weighted_choice(transition_probs[current_state])
+        p_cdf = transition_probs_cdf[current_state]
+        next_state = sample_discrete(p_cdf)
         current_state = next_state
 
         simulated_jump_times.append(current_time)
@@ -127,7 +99,8 @@ def simulate_trace_numba(initial_dist, total_time, transition_matrix, measuremen
         else:
             simulated_observed_values.append(measurement_op[current_state])
 
-    return simulated_jump_times, simulated_states, simulated_observed_values
+    return (np.array(simulated_jump_times), np.array(simulated_states),
+            np.array(simulated_observed_values))
 
 
 # ------- Second Term of S(4) ---------
@@ -1116,10 +1089,10 @@ class System:  # (SpectrumCalculator):
 
     def simulate_trace(self, initial_dist, total_time):
         """
-        Simulates a continuous-time Markov chain.
+        Simulates a continuous-time Markov chain using Numba for performance.
 
         Parameters:
-        - initial_state: Initial distribution of states (numpy array).
+        - initial_dist: Initial distribution of states (numpy array).
         - total_time: Total time to simulate.
 
         Returns:
@@ -1128,20 +1101,30 @@ class System:  # (SpectrumCalculator):
         - simulated_observed_values: Observed values at these times.
         """
 
-        # Normalize transtion_matrix to get transition probabilities and compute holding times
-        simulated_jump_times, simulated_states, simulated_observed_values = simulate_trace_numba(
-            initial_dist,
-            total_time,
-            self.transtion_matrix_no_photon_emission,
-            self.measurement_op,
-            self.single_photon_modus,
-            self.measurement_op_no_photon_emission
-        )
+        # Normalize transition_matrix to get transition probabilities and compute holding times
+        holding_rates = -np.diag(self.transtion_matrix_no_photon_emission.T)
+        transition_probs = self.transtion_matrix_no_photon_emission.T / holding_rates[:, np.newaxis]
+        np.fill_diagonal(transition_probs, 0)
 
-        # Store the results in the class attributes for further use if necessary
-        self.simulated_jump_times = simulated_jump_times
-        self.simulated_states = simulated_states
-        self.simulated_observed_values = simulated_observed_values
+        # Precompute cumulative distribution functions
+        initial_dist_cdf = np.cumsum(initial_dist)
+        transition_probs_cdf = np.cumsum(transition_probs, axis=1)
+
+        # Convert measurement operators to numpy arrays
+        measurement_op = np.array(self.measurement_op)
+        measurement_op_no_photon_emission = np.array(self.measurement_op_no_photon_emission)
+
+        # Call the Numba-compiled function
+        (self.simulated_jump_times, self.simulated_states,
+         self.simulated_observed_values) = simulate_trace_numba(
+            initial_dist_cdf,
+            total_time,
+            transition_probs_cdf,
+            holding_rates,
+            self.single_photon_modus,
+            measurement_op,
+            measurement_op_no_photon_emission
+        )
 
     def simulate_photon_emissions(self, initial_dist, total_time):
         """
