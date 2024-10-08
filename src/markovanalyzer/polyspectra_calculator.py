@@ -1229,7 +1229,7 @@ class System:  # (SpectrumCalculator):
         plt.legend(lines, labels)
         plt.show()
 
-    def simulate_discrete_trace(self, total_time, sampling_rate, initial_state=0):
+    def simulate_discrete_trace_old_and_wrong(self, total_time, sampling_rate, initial_state=0):
         num_steps = int(total_time * sampling_rate)
 
         # Create the discrete-time transition matrix
@@ -1245,7 +1245,7 @@ class System:  # (SpectrumCalculator):
 
         return states, measurement
 
-    def simulate_discrete_trace_2(self, total_time, sampling_rate, initial_state=0):
+    def simulate_discrete_trace(self, total_time, sampling_rate, initial_state=0):
         """
         Simulate a continuous-time Markov process.
 
