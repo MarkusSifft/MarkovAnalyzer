@@ -36,8 +36,11 @@ import matplotlib.colors as colors
 from signalsnap.spectrum_calculator import load_spec
 from matplotlib.colors import LinearSegmentedColormap
 from ipywidgets import widgets
+from tqdm import tqdm_notebook
+
 from .polyspectra_calculator import System
 import pickle
+from signalsnap import SpectrumCalculator, SpectrumConfig, PlotConfig
 
 
 def pickle_load(path):
@@ -58,9 +61,10 @@ except NameError:
 
 class SinglePhotonFit:
 
-    def __init__(self, model_system, path_to_spectra):
+    def __init__(self, model_system, path_to_spectra=None, spec_obj_instead_of_path=None):
         self.model_system = model_system
         self.path_to_spectra = path_to_spectra
+        self.spec_obj_instead_of_path = spec_obj_instead_of_path
 
     def start_fitting(self, parameter, f_min=None, f_max_2=None, f_max_3=None, f_max_4=None,
                       xtol=1e-8, ftol=1e-8, show_plot=True,
@@ -72,12 +76,12 @@ class SinglePhotonFit:
                                          f_max_4=f_max_4,
                                          method='least_squares', xtol=xtol, ftol=ftol, show_plot=show_plot,
                                          fit_modus=fit_modus, start_order=start_order,
-                                         fit_orders=fit_orders, beta_offset=False)
+                                         fit_orders=fit_orders, beta_offset=False,
+                                         spec_obj_instead_of_path=self.spec_obj_instead_of_path)
 
         return result
 
     def set_system(self, params):
-
         rates, m_op = self.model_system(params)
 
         markov_system = System(rates, m_op, single_photon_modus=True)
@@ -89,6 +93,7 @@ class FitSystem:
 
     def __init__(self, set_system, f_unit='Hz', huber_loss=False, huber_delta=1, enable_gpu=False,
                  fit_squared_errors=True):
+        self.params_in = None
         self.result = None
         self.beta_offset = None
         self.set_system = set_system
@@ -125,7 +130,7 @@ class FitSystem:
         elif 'c' in params:
             return np.real(spec) + params['c']
         elif 'background_photon_rate' in params:
-            return np.real(spec) + 2*params['background_photon_rate']
+            return np.real(spec) + 2 * params['background_photon_rate']
         else:
             return np.real(spec)
 
@@ -134,7 +139,7 @@ class FitSystem:
         spec = system.calculate_one_spectrum(omegas, order=3, bar=False)
 
         if 'background_photon_rate' in params:
-            return np.real(spec) + 6*params['background_photon_rate']
+            return np.real(spec) + 6 * params['background_photon_rate']
         else:
             return np.real(spec)
 
@@ -143,7 +148,7 @@ class FitSystem:
         spec = system.calculate_one_spectrum(omegas, order=4, bar=False)
 
         if 'background_photon_rate' in params:
-            return np.real(spec) + 24*params['background_photon_rate']
+            return np.real(spec) + 24 * params['background_photon_rate']
         else:
             return np.real(spec)
 
@@ -226,9 +231,24 @@ class FitSystem:
                      method='least_squares',
                      fit_modus='order_based', start_order=1, beta_offset=True,
                      fit_orders=(1, 2, 3, 4), show_plot=True,
-                     xtol=1e-6, ftol=1e-6, max_nfev=500, general_weight=(2, 2, 1, 1), realtime_plot=True):
+                     xtol=1e-6, ftol=1e-6, max_nfev=500, general_weight=(2, 2, 1, 1), realtime_plot=True,
+                     spec_obj_instead_of_path=None):
 
+        self.params_in = params_in
         self.realtime_plot = realtime_plot
+        self.f_min = f_min
+        self.f_max_2 = f_max_2
+        self.f_max_3 = f_max_3
+        self.f_max_4 = f_max_4
+        self.method = method
+        self.fit_modus = fit_modus
+        self.start_order = start_order
+        self.beta_offset = beta_offset
+        self.fit_orders = fit_orders
+        self.show_plot = show_plot
+        self.xtol = xtol
+        self.ftol = ftol
+        self.max_nfev = max_nfev
 
         # Check if start_order is an integer
         if not isinstance(start_order, int):
@@ -239,7 +259,11 @@ class FitSystem:
             raise ValueError(f"start_order must be smaller than the largest number in fit_orders. "
                              f"The largest number in fit_orders is {max(fit_orders)}.")
 
-        self.measurement_spec = load_spec(path)
+        if spec_obj_instead_of_path is not None:
+            self.measurement_spec = spec_obj_instead_of_path
+        else:
+            self.measurement_spec = load_spec(path)
+
         self.show_plot = show_plot
         self.general_weight = general_weight
         self.beta_offset = beta_offset
@@ -344,7 +368,6 @@ class FitSystem:
                         self.err_list[i] = self.err_list_original[i][::res, ::res]
 
                 result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol)
-
 
                 for p in result.params:
                     fit_params[p].value = result.params[p].value
@@ -665,9 +688,107 @@ class FitSystem:
 
             plt.show()
 
-    def error_estimation_of_fit_parameter(self, n_simulations):
+    def error_estimation_of_fit_parameter(self, measurement_time, n_simulations, sampling_rate=None):
         system = self.set_system(self.result.params)
+        all_results = []
 
+        for i in tqdm_notebook(range(n_simulations)):
+
+            # ----- data generation -----
+            if system.single_photon_modus:
+                init_dist = system.rho_steady
+                system.simulate_photon_emissions(initial_dist=init_dist, total_time=measurement_time)
+            else:
+                init_state = np.argmax(system.rho_steady)
+                t, trace = system.simulate_discrete_trace(total_time=measurement_time, sampling_rate=sampling_rate,
+                                                          initial_state=init_state)
+
+            # ----- Spectrum Calculation -----
+            if system.single_photon_modus:
+                config = SpectrumConfig(data=system.photon_emission_times, f_unit=self.measurement_spec.config.f_unit,
+                                        spectrum_size=self.measurement_spec.config.spectrum_size, order_in='all',
+                                        m=self.measurement_spec.config.m, m_var=self.measurement_spec.config.m_var,
+                                        m_stationarity=None,
+                                        f_max=self.measurement_spec.config.f_max, backend='cpu')
+
+                spec = SpectrumCalculator(config)
+                fs, s, serr = spec.calc_spec_poisson(n_reps=5)
+            else:
+                config = SpectrumConfig(data=system.photon_emission_times, f_unit=self.measurement_spec.config.f_unit,
+                                        spectrum_size=self.measurement_spec.config.spectrum_size, order_in='all',
+                                        m=self.measurement_spec.config.m, m_var=self.measurement_spec.config.m_var,
+                                        m_stationarity=None,
+                                        f_max=self.measurement_spec.config.f_max, backend='cpu')
+
+                spec = SpectrumCalculator(config)
+                fs, s, serr = spec.calc_spec()
+
+            # ----- Perform a new fit -----
+            parameter = add_gaussian_noise(self.params_in)
+
+            if system.single_photon_modus:
+
+                fit_obj = SinglePhotonFit(self.set_system, None, spec)
+
+                result = fit_obj.start_fitting(parameter, f_min=self.f_min, xtol=self.xtol, ftol=self.ftol,
+                                               show_plot=self.show_plot,
+                                               fit_modus=self.fit_modus, start_order=self.start_order,
+                                               fit_orders=self.fit_orders)
+
+            else:
+                result = self.complete_fit(None, parameter,
+                                           method=self.method, xtol=self.xtol, ftol=self.ftol,
+                                           show_plot=self.show_plot,
+                                           fit_modus=self.fit_modus,
+                                           fit_orders=self.fit_orders, start_order=self.start_order,
+                                           beta_offset=self.beta_offset)
+
+            all_results.append(result)
+
+            # ----- Print cumulated results -----
+            print_fit_statistics(all_results)
+
+
+def print_fit_statistics(all_results):
+    # Extract all parameter names
+    param_names = all_results[0].keys()
+
+    # Create a dictionary to store lists of all fitted values for each parameter
+    param_values = {param: [] for param in param_names}
+
+    # Loop over each result and append the fitted parameter values to the corresponding list
+    for result in all_results:
+        for param, value in result.items():
+            param_values[param].append(value)
+
+    # Calculate mean and standard deviation for each parameter
+    statistics = []
+    for param, values in param_values.items():
+        mean_value = np.mean(values)
+        std_dev = np.std(values)
+        statistics.append([param, mean_value, std_dev])
+
+    return statistics
+
+def add_gaussian_noise(parameter):
+    # Create a new dictionary to hold the updated values
+    updated_parameters = {}
+
+    for key, value in parameter.items():
+        # Calculate the standard deviation as 10% of the starting value
+        starting_value = value[0]
+        std_dev = 0.1 * starting_value
+
+        # Generate a random value from a Gaussian distribution centered at 0 with calculated std_dev
+        noise = np.random.normal(0, std_dev)
+
+        # Add the noise to the starting value
+        new_value = starting_value + noise
+
+        # Update the dictionary with the new value
+        updated_parameters[key] = [new_value] + value[1:]
+
+    return updated_parameters
 
 
 def arcsinh_scaling(s_data, arcsinh_const, order, s_err=None, s_err_p=None, s_err_m=None):
