@@ -447,14 +447,14 @@ class System:  # (SpectrumCalculator):
         -------
         >>> old_m_op = np.array([1, 0, 0])
         >>> transform_m_op(old_m_op)
-        array([0, 0, 0, 1, 1, 1])
+        array([0, 0, 0, gamma_det, gamma_det, gamma_det])
         """
 
         # Set all entries in the old_m_op to 0
         old_m_op_zeroed = np.zeros_like(old_m_op)
 
         # Create an array of 1s with the same shape as old_m_op
-        extended_part = np.ones_like(old_m_op) * old_m_op.max()
+        extended_part = np.ones_like(old_m_op)
 
         # Concatenate old_m_op_zeroed and extended_part to form new_m_op
         new_m_op = np.concatenate((old_m_op_zeroed, extended_part))
