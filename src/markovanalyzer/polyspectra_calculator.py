@@ -1244,3 +1244,74 @@ class System:  # (SpectrumCalculator):
             measurement[i] = self.measurement_op[state]
 
         return states, measurement
+
+    def simulate_discrete_trace_2(self, total_time, sampling_rate, initial_state=0):
+        """
+        Simulate a continuous-time Markov process.
+
+        Parameters:
+        Q : numpy array (n x n)
+            The generator matrix.
+        T : float
+            The total time to simulate.
+        dt : float
+            The sampling interval.
+        initial_state : int
+            The initial state index.
+
+        Returns:
+        times : numpy array
+            Array of sampling times.
+        states : numpy array
+            Array of states at each sampling time.
+        """
+
+        dt = 1 / sampling_rate
+        n_states = self.transtion_matrix.T.shape[0]
+        times = np.arange(0, total_time + dt, dt)
+        num_steps = len(times)
+        states = np.zeros(num_steps, dtype=int)
+
+        current_state = initial_state
+        t = 0.0
+        states[0] = current_state
+        sample_idx = 1  # index for the next sampling time
+
+        while t < total_time:
+            # Compute the rate out of the current state
+            rates = self.transtion_matrix.T[current_state, :]
+            rate_out = -rates[current_state]  # Diagonal element is negative sum of off-diagonals
+
+            if rate_out == 0:
+                # Absorbing state, stays there forever
+                next_transition_time = total_time + dt  # Set next transition time beyond total_time
+            else:
+                # Sample time to next transition
+                tau = np.random.exponential(scale=1.0 / rate_out)
+                next_transition_time = t + tau
+
+            # Determine the next state
+            probs = rates.copy()
+            probs[current_state] = 0  # Exclude self-transition
+            probs = probs / rate_out  # Normalize to get probabilities
+
+            # Record the current state at each sampling time until next transition
+            while sample_idx < num_steps and times[sample_idx] <= next_transition_time:
+                states[sample_idx] = current_state
+                sample_idx += 1
+
+            if next_transition_time >= total_time:
+                # No more transitions within total_time
+                break
+
+            # Transition to the next state
+            t = next_transition_time
+            next_state = np.random.choice(n_states, p=probs)
+            current_state = next_state
+
+        # Fill in the remaining times with the last state
+        while sample_idx < num_steps:
+            states[sample_idx] = current_state
+            sample_idx += 1
+
+        return times, states

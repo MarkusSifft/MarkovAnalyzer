@@ -89,6 +89,7 @@ class FitSystem:
 
     def __init__(self, set_system, f_unit='Hz', huber_loss=False, huber_delta=1, enable_gpu=False,
                  fit_squared_errors=True):
+        self.result = None
         self.beta_offset = None
         self.set_system = set_system
         self.out = None
@@ -344,6 +345,7 @@ class FitSystem:
 
                 result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol)
 
+
                 for p in result.params:
                     fit_params[p].value = result.params[p].value
 
@@ -355,6 +357,7 @@ class FitSystem:
         else:
             print('Parameter fit_order must be: (order_based, resolution_based)')
 
+        self.result = result
         return result
 
     def update_real_time(self, i, params):
@@ -661,6 +664,10 @@ class FitSystem:
                         ax[j, 2].legend()
 
             plt.show()
+
+    def error_estimation_of_fit_parameter(self, n_simulations):
+        system = self.set_system(self.result.params)
+
 
 
 def arcsinh_scaling(s_data, arcsinh_const, order, s_err=None, s_err_p=None, s_err_m=None):
