@@ -78,6 +78,7 @@ class SinglePhotonFit:
 
     def set_system(self, params):
         rates, m_op = self.model_system(params)
+        m_op = np.array(m_op)
 
         markov_system = System(rates, m_op, single_photon_modus=True)
 
