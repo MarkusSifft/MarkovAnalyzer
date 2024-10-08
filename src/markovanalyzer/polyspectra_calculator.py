@@ -384,7 +384,7 @@ class System:  # (SpectrumCalculator):
 
     def __init__(self, transition_dict, measurement_op, single_photon_modus=False):
 
-        self.measurement_op = measurement_op
+        self.measurement_op = np.asarray(measurement_op)
 
         # ----- Placeholder for detector rate allways 1e10 higher than the largest system rate and used to
         # ----- scale the measurement operator to normalize the area under photon click
