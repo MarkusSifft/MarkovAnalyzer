@@ -66,15 +66,20 @@ def simulate_trace_numba(initial_dist_cdf, total_time, transition_probs_cdf, hol
     n_states = len(initial_dist_cdf)
     current_state = sample_discrete(initial_dist_cdf)
 
-    simulated_jump_times = List()
-    simulated_states = List()
-    simulated_observed_values = List()
+    # Explicitly specify the list types
+    simulated_jump_times = List.empty_list(float64)
+    simulated_states = List.empty_list(int64)
+
+    if single_photon_modus:
+        simulated_observed_values = List.empty_list(int64)
+        state_numbering_array = np.arange(len(measurement_op_no_photon_emission))
+    else:
+        simulated_observed_values = List.empty_list(float64)
 
     simulated_jump_times.append(current_time)
     simulated_states.append(current_state)
 
     if single_photon_modus:
-        state_numbering_array = np.arange(len(measurement_op_no_photon_emission))
         simulated_observed_values.append(state_numbering_array[current_state])
     else:
         simulated_observed_values.append(measurement_op[current_state])
@@ -1110,9 +1115,9 @@ class System:  # (SpectrumCalculator):
         initial_dist_cdf = np.cumsum(initial_dist)
         transition_probs_cdf = np.cumsum(transition_probs, axis=1)
 
-        # Convert measurement operators to numpy arrays
-        measurement_op = np.array(self.measurement_op)
-        measurement_op_no_photon_emission = np.array(self.measurement_op_no_photon_emission)
+        # Ensure measurement operators are numpy arrays with appropriate dtypes
+        measurement_op = np.array(self.measurement_op, dtype=np.float64)
+        measurement_op_no_photon_emission = np.array(self.measurement_op_no_photon_emission, dtype=np.float64)
 
         # Call the Numba-compiled function
         (self.simulated_jump_times, self.simulated_states,
