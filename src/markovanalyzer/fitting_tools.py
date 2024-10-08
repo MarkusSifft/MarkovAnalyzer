@@ -58,10 +58,9 @@ except NameError:
 
 class SinglePhotonFit:
 
-    def __init__(self, model_system, emitting_states, path_to_spectra):
+    def __init__(self, model_system, path_to_spectra):
         self.model_system = model_system
         self.path_to_spectra = path_to_spectra
-        self.emitting_states = np.array(emitting_states)
 
     def start_fitting(self, parameter, f_min=None, f_max_2=None, f_max_3=None, f_max_4=None,
                       xtol=1e-8, ftol=1e-8, show_plot=True,
@@ -78,14 +77,9 @@ class SinglePhotonFit:
         return result
 
     def set_system(self, params):
-        gamma_ph = params['gamma_ph']
-        gamma_det = 1e10 * max([value for key, value in params.items() if key != "c"])
+        rates, m_op = self.model_system(params)
 
-        rates = self.model_system(params)
-
-        m_op = gamma_det * self.emitting_states
-
-        markov_system = System(rates, m_op, gamma_ph, gamma_det)
+        markov_system = System(rates, m_op, single_photon_modus=True)
 
         return markov_system
 

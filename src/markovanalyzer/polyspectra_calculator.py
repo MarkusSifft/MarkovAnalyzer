@@ -379,15 +379,19 @@ class System:  # (SpectrumCalculator):
     enable_gpu : bool
         Set if GPU should be used for analytic spectra calculation
     gpu_0 : int
-        Stores pointer to zero an the GPU
+        Stores pointer to zero on the GPU
     """
 
-    def __init__(self, transition_dict, measurement_op, gamma_ph=None, gamma_det=None):
+    def __init__(self, transition_dict, measurement_op, single_photon_modus=False):
 
         self.measurement_op = measurement_op
 
-        if gamma_det is not None and gamma_ph is not None:
-            self.transition_dict = self.extension_for_single_photon(transition_dict, measurement_op, gamma_ph, gamma_det)
+        # ----- Placeholder for detector rate allways 1e10 higher than the largest system rate and used to
+        # ----- scale the measurement operator to normalize the area under photon click
+        self.gamma_det = None
+
+        if single_photon_modus:
+            self.transition_dict = self.extension_for_single_photon(transition_dict, measurement_op)
             self.measurement_op = self.transform_m_op(measurement_op)
 
         else:
@@ -427,7 +431,7 @@ class System:  # (SpectrumCalculator):
         """
         Transforms the input array old_m_op to a new array new_m_op.
         The new array is twice as long, with the original entries set to 0,
-        and the new entries set to 1.
+        and the new entries set to gamma_det to ensure a normalized click length.
 
         Parameters
         ----------
@@ -455,7 +459,7 @@ class System:  # (SpectrumCalculator):
         # Concatenate old_m_op_zeroed and extended_part to form new_m_op
         new_m_op = np.concatenate((old_m_op_zeroed, extended_part))
 
-        return new_m_op
+        return self.gamma_det * new_m_op
 
     def save_spec(self, path):
         """
@@ -627,7 +631,7 @@ class System:  # (SpectrumCalculator):
 
         return rates
 
-    def extension_for_single_photon(self, rates, m_op, gamma_ph, gamma_det):
+    def extension_for_single_photon(self, rates, m_op):
         """
         Adds further connections to the rates dictionary based on the input array m_op and float gamma_det.
 
@@ -650,7 +654,7 @@ class System:  # (SpectrumCalculator):
         >>> rates = {'0->1': 'gamma_in', '0->2': 'gamma_in', '1->0': 'gamma_A', '1->2': 'gamma_spin + gamma_R', '2->1': 'gamma_spin'}
         >>> m_op = ['m_op[0]', 'm_op[1]', 'm_op[2]']
         >>> gamma_det = 'gamma_det'
-        >>> extension_for_single_photon(rates, m_op, gamma_det)
+        >>> extension_for_single_photon(rates, m_op)
         {
             '0->1': 'gamma_in',
             '0->2': 'gamma_in',
@@ -674,21 +678,31 @@ class System:  # (SpectrumCalculator):
         extended_rates = self.replicate_and_extend_rates(rates)
 
         # Add further connections based on m_op
-        for i, emits in enumerate(m_op):
+        for i, photon_rate in enumerate(m_op):
             # Find the replicated state corresponding to the original state
             replicated_state = i + len(m_op)
             new_key = f"{i}->{replicated_state}"
-            if emits > 0:
-                extended_rates[new_key] = gamma_ph
-            else:
-                extended_rates[new_key] = 0
+
+            extended_rates[new_key] = photon_rate
 
         # Add connections from each replicated level back to its original level
+
+        # Determine large enough gamma_det
+        # Exclude values in the dictionary corresponding to keys "c" or "background_photon_rate"
+        filtered_dict_values = [v for k, v in rates.items() if k not in {"c", "background_photon_rate"}]
+
+        # Combine the filtered dictionary values with the numpy array values
+        all_values = filtered_dict_values + m_op.tolist()
+
+        # Find the maximum value from the combined values
+        self.gamma_det = 1e10 * max(all_values)
+
         for i in range(len(m_op)):
             # Find the replicated state corresponding to the original state
             replicated_state = i + len(m_op)
             new_key = f"{replicated_state}->{i}"
-            extended_rates[new_key] = gamma_det
+
+            extended_rates[new_key] = self.gamma_det
 
         return extended_rates
 
