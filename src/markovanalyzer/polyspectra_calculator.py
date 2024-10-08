@@ -30,7 +30,7 @@
 import numpy as np
 from numpy.linalg import inv, eig
 from scipy.linalg import eig, expm
-from numba import njit
+from numba import njit, int64, float64
 from numba.typed import List
 
 from tqdm import tqdm_notebook
