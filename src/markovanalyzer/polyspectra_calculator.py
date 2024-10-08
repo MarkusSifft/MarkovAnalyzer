@@ -1058,7 +1058,12 @@ class System:  # (SpectrumCalculator):
         current_state = np.random.choice(len(initial_dist), p=initial_dist)
         self.simulated_jump_times = [current_time]
         self.simulated_states = [current_state]
-        self.simulated_observed_values = [self.measurement_op[current_state]]
+
+        if self.single_photon_modus:
+            state_numbering_array = np.arange(len(self.measurement_op_no_photon_emission))
+            self.simulated_observed_values = [state_numbering_array[current_state]]
+        else:
+            self.simulated_observed_values = [self.measurement_op[current_state]]
 
         while current_time < total_time:
             rate = holding_rates[current_state]
@@ -1076,7 +1081,6 @@ class System:  # (SpectrumCalculator):
             self.simulated_states.append(current_state)
 
             if self.single_photon_modus:
-                state_numbering_array = np.arange(len(self.measurement_op_no_photon_emission))
                 self.simulated_observed_values.append(state_numbering_array[current_state])
             else:
                 self.simulated_observed_values.append(self.measurement_op[current_state])
