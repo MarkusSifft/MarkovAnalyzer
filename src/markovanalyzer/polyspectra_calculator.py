@@ -391,7 +391,7 @@ class System:  # (SpectrumCalculator):
         self.gamma_det = None
 
         if single_photon_modus:
-            self.transition_dict = self.extension_for_single_photon(transition_dict, measurement_op)
+            self.transition_dict = self.extension_for_single_photon(transition_dict, self.measurement_op)
             self.measurement_op = self.transform_m_op(self.measurement_op)
 
         else:
