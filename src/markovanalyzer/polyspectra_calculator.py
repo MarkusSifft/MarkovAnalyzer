@@ -50,6 +50,65 @@ import matplotlib.pyplot as plt
 #  from pympler import asizeof
 
 
+@njit
+def simulate_trace_numba(initial_dist, total_time, transition_matrix, measurement_op, single_photon_modus, measurement_op_no_photon_emission):
+    """
+    Simulates a continuous-time Markov chain using Numba for acceleration.
+
+    Parameters:
+    - initial_dist: Initial distribution of states (numpy array).
+    - total_time: Total time to simulate.
+    - transition_matrix: Transition matrix without photon emission.
+    - measurement_op: Measurement operator.
+    - single_photon_modus: Boolean for single photon mode.
+    - measurement_op_no_photon_emission: Measurement operator without photon emission.
+
+    Returns:
+    - simulated_jump_times: Times at which transitions occur.
+    - simulated_states: States at these times.
+    - simulated_observed_values: Observed values at these times.
+    """
+
+    # Normalize transition_matrix to get transition probabilities and compute holding times
+    holding_rates = -np.diag(transition_matrix.T)
+    transition_probs = transition_matrix.T / holding_rates[:, np.newaxis]
+    for i in range(len(transition_probs)):
+        transition_probs[i, i] = 0  # Fill diagonal with zeros
+
+    current_time = 0.0
+    current_state = np.random.choice(len(initial_dist), p=initial_dist)
+    simulated_jump_times = [current_time]
+    simulated_states = [current_state]
+
+    if single_photon_modus:
+        state_numbering_array = np.arange(len(measurement_op_no_photon_emission))
+        simulated_observed_values = [state_numbering_array[current_state]]
+    else:
+        simulated_observed_values = [measurement_op[current_state]]
+
+    while current_time < total_time:
+        rate = holding_rates[current_state]
+        time_to_next = np.random.exponential(1 / rate)
+        current_time += time_to_next
+
+        if current_time > total_time:
+            break
+
+        # Transition to the next state
+        next_state = np.random.choice(len(transition_probs[current_state]), p=transition_probs[current_state])
+        current_state = next_state
+
+        simulated_jump_times.append(current_time)
+        simulated_states.append(current_state)
+
+        if single_photon_modus:
+            simulated_observed_values.append(state_numbering_array[current_state])
+        else:
+            simulated_observed_values.append(measurement_op[current_state])
+
+    return simulated_jump_times, simulated_states, simulated_observed_values
+
+
 # ------- Second Term of S(4) ---------
 
 #  @njit(parallel=True, fastmath=False)
@@ -1049,41 +1108,19 @@ class System:  # (SpectrumCalculator):
         """
 
         # Normalize transtion_matrix to get transition probabilities and compute holding times
+        simulated_jump_times, simulated_states, simulated_observed_values = simulate_trace_numba(
+            initial_dist,
+            total_time,
+            self.transtion_matrix_no_photon_emission,
+            self.measurement_op,
+            self.single_photon_modus,
+            self.measurement_op_no_photon_emission
+        )
 
-        holding_rates = -np.diag(self.transtion_matrix_no_photon_emission.T)
-        transition_probs = self.transtion_matrix_no_photon_emission.T / holding_rates[:, np.newaxis]
-        np.fill_diagonal(transition_probs, 0)
-
-        current_time = 0.0
-        current_state = np.random.choice(len(initial_dist), p=initial_dist)
-        self.simulated_jump_times = [current_time]
-        self.simulated_states = [current_state]
-
-        if self.single_photon_modus:
-            state_numbering_array = np.arange(len(self.measurement_op_no_photon_emission))
-            self.simulated_observed_values = [state_numbering_array[current_state]]
-        else:
-            self.simulated_observed_values = [self.measurement_op[current_state]]
-
-        while current_time < total_time:
-            rate = holding_rates[current_state]
-            time_to_next = np.random.exponential(1 / rate)
-            current_time += time_to_next
-
-            if current_time > total_time:
-                break
-
-            # Transition to the next state
-            next_state = np.random.choice(len(transition_probs[current_state]), p=transition_probs[current_state])
-            current_state = next_state
-
-            self.simulated_jump_times.append(current_time)
-            self.simulated_states.append(current_state)
-
-            if self.single_photon_modus:
-                self.simulated_observed_values.append(state_numbering_array[current_state])
-            else:
-                self.simulated_observed_values.append(self.measurement_op[current_state])
+        # Store the results in the class attributes for further use if necessary
+        self.simulated_jump_times = simulated_jump_times
+        self.simulated_states = simulated_states
+        self.simulated_observed_values = simulated_observed_values
 
     def simulate_photon_emissions(self, initial_dist, total_time):
         """
