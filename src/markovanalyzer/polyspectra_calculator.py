@@ -51,7 +51,25 @@ import matplotlib.pyplot as plt
 
 
 @njit
-def simulate_trace_numba(initial_dist, total_time, transition_matrix, measurement_op, single_photon_modus, measurement_op_no_photon_emission):
+def weighted_choice(probabilities):
+    """
+    Select an index based on given probabilities using cumulative sum and searchsorted.
+
+    Parameters:
+    - probabilities: A 1D numpy array of probabilities.
+
+    Returns:
+    - index: Chosen index based on the probabilities.
+    """
+    cumulative_probabilities = np.cumsum(probabilities)
+    random_value = np.random.random()
+    index = np.searchsorted(cumulative_probabilities, random_value)
+    return index
+
+
+@njit
+def simulate_trace_numba(initial_dist, total_time, transition_matrix, measurement_op, single_photon_modus,
+                         measurement_op_no_photon_emission):
     """
     Simulates a continuous-time Markov chain using Numba for acceleration.
 
@@ -69,14 +87,17 @@ def simulate_trace_numba(initial_dist, total_time, transition_matrix, measuremen
     - simulated_observed_values: Observed values at these times.
     """
 
-    # Normalize transition_matrix to get transition probabilities and compute holding times
     holding_rates = -np.diag(transition_matrix.T)
     transition_probs = transition_matrix.T / holding_rates[:, np.newaxis]
+
+    # Replace diagonal elements with zero as in original function
     for i in range(len(transition_probs)):
-        transition_probs[i, i] = 0  # Fill diagonal with zeros
+        transition_probs[i, i] = 0
 
     current_time = 0.0
-    current_state = np.random.choice(len(initial_dist), p=initial_dist)
+    # Replace np.random.choice with a custom function for Numba compatibility
+    current_state = weighted_choice(initial_dist)
+
     simulated_jump_times = [current_time]
     simulated_states = [current_state]
 
@@ -94,8 +115,8 @@ def simulate_trace_numba(initial_dist, total_time, transition_matrix, measuremen
         if current_time > total_time:
             break
 
-        # Transition to the next state
-        next_state = np.random.choice(len(transition_probs[current_state]), p=transition_probs[current_state])
+        # Use the weighted_choice function to choose the next state based on transition probabilities
+        next_state = weighted_choice(transition_probs[current_state])
         current_state = next_state
 
         simulated_jump_times.append(current_time)
