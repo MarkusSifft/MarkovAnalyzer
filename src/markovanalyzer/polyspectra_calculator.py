@@ -385,6 +385,13 @@ class System:  # (SpectrumCalculator):
     def __init__(self, transition_dict, measurement_op, single_photon_modus=False):
 
         self.measurement_op = np.asarray(measurement_op)
+        self.single_photon_modus = single_photon_modus
+
+        # ----- Store the original transition matrix without photon emission for the simulation of the trace
+        # ----- and later the simulation of photon clicks
+        self.measurement_op_no_photon_emission = self.measurement_op
+        self.transtion_dict_no_photon_emission = transition_dict
+        self.transtion_matrix_no_photon_emission = rates_to_matrix(self.transtion_dict_no_photon_emission)
 
         # ----- Placeholder for detector rate allways 1e10 higher than the largest system rate and used to
         # ----- scale the measurement operator to normalize the area under photon click
@@ -1042,8 +1049,8 @@ class System:  # (SpectrumCalculator):
 
         # Normalize transtion_matrix to get transition probabilities and compute holding times
 
-        holding_rates = -np.diag(self.transtion_matrix.T)
-        transition_probs = self.transtion_matrix.T / holding_rates[:, np.newaxis]
+        holding_rates = -np.diag(self.transtion_matrix_no_photon_emission.T)
+        transition_probs = self.transtion_matrix_no_photon_emission.T / holding_rates[:, np.newaxis]
         np.fill_diagonal(transition_probs, 0)
 
         current_time = 0.0
@@ -1066,7 +1073,12 @@ class System:  # (SpectrumCalculator):
 
             self.simulated_jump_times.append(current_time)
             self.simulated_states.append(current_state)
-            self.simulated_observed_values.append(self.measurement_op[current_state])
+
+            if self.single_photon_modus:
+                state_numbering_array = np.arange(len(self.measurement_op_no_photon_emission))
+                self.simulated_observed_values.append(state_numbering_array[current_state])
+            else:
+                self.simulated_observed_values.append(self.measurement_op[current_state])
 
     def plot_simulation(self):
         """
