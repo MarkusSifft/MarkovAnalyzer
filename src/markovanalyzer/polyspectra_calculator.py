@@ -384,6 +384,7 @@ class System:  # (SpectrumCalculator):
 
     def __init__(self, transition_dict, measurement_op, single_photon_modus=False):
 
+        self.photon_emission_times = None
         self.measurement_op = np.asarray(measurement_op)
         self.single_photon_modus = single_photon_modus
 
@@ -1080,6 +1081,68 @@ class System:  # (SpectrumCalculator):
             else:
                 self.simulated_observed_values.append(self.measurement_op[current_state])
 
+    def simulate_photon_emissions(self, initial_dist, total_time):
+        """
+        Simulates photon emissions in a continuous-time Markov chain with state-dependent photon rates.
+
+        Parameters:
+        - initial_dist: Initial distribution of states (numpy array).
+        - total_time: Total time to simulate.
+
+        Returns:
+        - photon_emission_times: Timestamps of the emitted photons.
+        """
+
+        # First, simulate the Markov chain trace
+        self.simulate_trace(initial_dist, total_time)
+
+        # Now, simulate photon emissions
+        photon_emission_times = []
+        simulated_jump_times = self.simulated_jump_times
+        simulated_states = self.simulated_states
+
+        # For each sojourn in the chain
+        for i in range(len(simulated_states) - 1):
+            t_start = simulated_jump_times[i]
+            t_end = simulated_jump_times[i + 1]
+            state = simulated_states[i]
+            photon_rate = self.measurement_op_no_photon_emission[state]  # Assume self.photon_rates is an array of rates for each state
+
+            if photon_rate == 0:
+                continue  # No photons emitted in this state
+
+            current_time = t_start
+            while True:
+                # Draw next photon emission time
+                time_to_next_photon = np.random.exponential(1 / photon_rate)
+                current_time += time_to_next_photon
+                if current_time < t_end:
+                    photon_emission_times.append(current_time)
+                else:
+                    break
+
+        # Handle the last state if there is remaining time
+        if total_time > simulated_jump_times[-1]:
+            t_start = simulated_jump_times[-1]
+            t_end = total_time
+            state = simulated_states[-1]
+            photon_rate = self.measurement_op_no_photon_emission[state]
+
+            if photon_rate != 0:
+                current_time = t_start
+                while True:
+                    time_to_next_photon = np.random.exponential(1 / photon_rate)
+                    current_time += time_to_next_photon
+                    if current_time < t_end:
+                        photon_emission_times.append(current_time)
+                    else:
+                        break
+
+        # Sort the photon emission times
+        photon_emission_times.sort()
+
+        self.photon_emission_times = photon_emission_times
+
     def plot_simulation(self):
         """
         Plots the observations of a continuous-time Markov chain over time.
@@ -1097,6 +1160,69 @@ class System:  # (SpectrumCalculator):
         plt.ylim(min(self.simulated_observed_values) - 0.1 * abs(min(self.simulated_observed_values)),
                  max(self.simulated_observed_values) + 0.1 * abs(max(self.simulated_observed_values)))
         plt.legend()
+        plt.show()
+
+    def plot_simulation_with_photons(self):
+        """
+        Plots the observations of a continuous-time Markov chain over time.
+        If single photon mode is enabled, it also plots vertical lines at photon emission times.
+
+        """
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+
+        plt.figure(figsize=(10, 5))
+        # Plot the observations as a step function
+        observation_line, = plt.step(
+            self.simulated_jump_times,
+            self.simulated_observed_values,
+            where='post',
+            label='Observation',
+            linewidth=2
+        )
+
+        plt.title('Observations over Time')
+        plt.xlabel('Time')
+        plt.ylabel('Observation')
+
+        # Set y-limits based on the observed values
+        y_min = min(self.simulated_observed_values)
+        y_max = max(self.simulated_observed_values)
+        y_range = y_max - y_min
+        plt.ylim(
+            y_min - 0.1 * abs(y_range),
+            y_max + 0.1 * abs(y_range)
+        )
+
+        # Initialize lists for custom legend entries
+        lines = [observation_line]
+        labels = ['Observation']
+
+        # Check if single photon mode is enabled and photon emissions exist
+        if self.single_photon_modus and hasattr(self, 'photon_emission_times') and len(self.photon_emission_times) > 0:
+            # Get current y-limits for plotting vertical lines
+            ymin, ymax = plt.ylim()
+            # Plot vertical lines at photon emission times without labels to avoid multiple legend entries
+            plt.vlines(
+                self.photon_emission_times,
+                ymin,
+                ymax,
+                color='red',
+                linestyle='--'
+            )
+            # Create a custom legend handle for photon emissions
+            photon_line = Line2D(
+                [0],
+                [0],
+                color='red',
+                linestyle='--',
+                label='Photon Emission'
+            )
+            lines.append(photon_line)
+            labels.append('Photon Emission')
+
+        # Add the custom legend to the plot
+        plt.legend(lines, labels)
         plt.show()
 
     def simulate_discrete_trace(self, total_time, sampling_rate, initial_state=0):
