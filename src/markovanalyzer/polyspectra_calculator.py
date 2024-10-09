@@ -1145,7 +1145,7 @@ class System:  # (SpectrumCalculator):
         # Sort the photon emission times
         photon_emission_times.sort()
 
-        self.photon_emission_times = photon_emission_times
+        self.photon_emission_times = np.array(photon_emission_times)
 
     def plot_simulation(self):
         """

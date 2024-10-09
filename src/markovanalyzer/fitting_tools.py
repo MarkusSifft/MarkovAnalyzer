@@ -703,7 +703,7 @@ class FitSystem:
                 print('shape rho_steady:', len(rho_steady))
                 init_dist = rho_steady[:len(rho_steady)//2]
                 system.simulate_photon_emissions(initial_dist=init_dist, total_time=measurement_time)
-                print('photon emissiontimes:', system.photon_emission_times)
+                #print('photon emissiontimes:', system.photon_emission_times)
             else:
                 init_state = np.argmax(rho_steady)
                 t, trace = system.simulate_discrete_trace(total_time=measurement_time, sampling_rate=sampling_rate,
