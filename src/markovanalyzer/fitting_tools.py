@@ -692,7 +692,7 @@ class FitSystem:
             plt.show()
 
     def error_estimation_of_fit_parameter(self, measurement_time, n_simulations, sampling_rate=None,
-                                          singalsnap_backend='cpu', n_reps_for_single_photon_spectra=5):
+                                          singalsnap_backend='cpu', n_reps_for_single_photon_spectra=5, show_plot=True):
         rho_steady = np.real(self.system.rho_steady)
         rho_steady /= rho_steady.sum()
 
@@ -748,7 +748,7 @@ class FitSystem:
                                            f_max_3=self.f_max_3,
                                            f_max_4=self.f_max_4,
                                            method='least_squares', xtol=self.xtol, ftol=self.ftol,
-                                           show_plot=self.show_plot,
+                                           show_plot=show_plot,
                                            fit_modus='resolution_based', start_order=self.start_order,
                                            fit_orders=self.fit_orders, beta_offset=False,
                                            spec_obj_instead_of_path=spec)
@@ -756,7 +756,7 @@ class FitSystem:
             else:
                 result = self.complete_fit(None, parameter,
                                            method=self.method, xtol=self.xtol, ftol=self.ftol,
-                                           show_plot=self.show_plot,
+                                           show_plot=show_plot,
                                            fit_modus=self.fit_modus,
                                            fit_orders=self.fit_orders, start_order=self.start_order,
                                            beta_offset=self.beta_offset)
