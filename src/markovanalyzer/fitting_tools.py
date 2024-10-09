@@ -759,12 +759,14 @@ class FitSystem:
                                            realtime_plot=show_realtime_plot)
 
             else:
-                result = self.complete_fit(None, parameter,
-                                           method=self.method, xtol=self.xtol, ftol=self.ftol,
+                result = self.complete_fit(None, parameter, f_min=self.f_min, f_max_2=self.f_max_2,
+                                           f_max_3=self.f_max_3,
+                                           f_max_4=self.f_max_4,
+                                           method='least_squares', xtol=self.xtol, ftol=self.ftol,
                                            show_plot=self.show_plot,
-                                           fit_modus=self.fit_modus,
-                                           fit_orders=self.fit_orders, start_order=self.start_order,
-                                           beta_offset=self.beta_offset,
+                                           fit_modus='resolution_based', start_order=self.start_order,
+                                           fit_orders=self.fit_orders, beta_offset=self.beta_offset,
+                                           spec_obj_instead_of_path=spec,
                                            realtime_plot=show_realtime_plot)
 
             all_results.append(result)
