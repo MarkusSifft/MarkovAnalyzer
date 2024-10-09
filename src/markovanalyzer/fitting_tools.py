@@ -691,7 +691,8 @@ class FitSystem:
 
             plt.show()
 
-    def error_estimation_of_fit_parameter(self, measurement_time, n_simulations, sampling_rate=None):
+    def error_estimation_of_fit_parameter(self, measurement_time, n_simulations, sampling_rate=None,
+                                          singalsnap_backend='cpu', n_reps_for_single_photon_spectra=5):
         rho_steady = np.real(self.system.rho_steady)
         rho_steady /= rho_steady.sum()
 
@@ -701,10 +702,8 @@ class FitSystem:
         for i in tqdm_notebook(range(n_simulations)):
             # ----- data generation -----
             if system.single_photon_modus:
-                print('shape rho_steady:', len(rho_steady))
                 init_dist = rho_steady[:len(rho_steady) // 2]
                 system.simulate_photon_emissions(initial_dist=init_dist, total_time=measurement_time)
-                #print('photon emissiontimes:', system.photon_emission_times)
             else:
                 init_state = np.argmax(rho_steady)
                 t, trace = system.simulate_discrete_trace(total_time=measurement_time, sampling_rate=sampling_rate,
@@ -716,16 +715,16 @@ class FitSystem:
                                         spectrum_size=self.measurement_spec.config.spectrum_size, order_in='all',
                                         m=self.measurement_spec.config.m, m_var=self.measurement_spec.config.m_var,
                                         m_stationarity=None,
-                                        f_max=self.measurement_spec.config.f_max, backend='cpu')
+                                        f_max=self.measurement_spec.config.f_max, backend=singalsnap_backend)
 
                 spec = SpectrumCalculator(config)
-                fs, s, serr = spec.calc_spec_poisson(n_reps=1)  # TODO: Set to 5
+                fs, s, serr = spec.calc_spec_poisson(n_reps=n_reps_for_single_photon_spectra)  # TODO: Set to 5
             else:
                 config = SpectrumConfig(data=system.photon_emission_times, f_unit=self.measurement_spec.config.f_unit,
                                         spectrum_size=self.measurement_spec.config.spectrum_size, order_in='all',
                                         m=self.measurement_spec.config.m, m_var=self.measurement_spec.config.m_var,
                                         m_stationarity=None,
-                                        f_max=self.measurement_spec.config.f_max, backend='cpu')
+                                        f_max=self.measurement_spec.config.f_max, backend=singalsnap_backend)
 
                 spec = SpectrumCalculator(config)
                 fs, s, serr = spec.calc_spec()
@@ -735,14 +734,12 @@ class FitSystem:
 
             if system.single_photon_modus:
 
-                #fit_obj = SinglePhotonFit(self.set_system, None, spec)
-
                 result = self.complete_fit(None, parameter, f_min=self.f_min, f_max_2=self.f_max_2,
                                            f_max_3=self.f_max_3,
                                            f_max_4=self.f_max_4,
                                            method='least_squares', xtol=self.xtol, ftol=self.ftol,
                                            show_plot=self.show_plot,
-                                           fit_modus=self.fit_modus, start_order=self.start_order,
+                                           fit_modus='resolution_based', start_order=self.start_order,
                                            fit_orders=self.fit_orders, beta_offset=False,
                                            spec_obj_instead_of_path=spec)
 
@@ -762,14 +759,14 @@ class FitSystem:
 
 def print_fit_statistics(all_results):
     # Extract all parameter names
-    param_names = all_results[0].keys()
+    param_names = all_results[0].params.keys()
 
     # Create a dictionary to store lists of all fitted values for each parameter
     param_values = {param: [] for param in param_names}
 
     # Loop over each result and append the fitted parameter values to the corresponding list
     for result in all_results:
-        for param, value in result.items():
+        for param, value in result.params.items():
             param_values[param].append(value)
 
     # Calculate mean and standard deviation for each parameter
