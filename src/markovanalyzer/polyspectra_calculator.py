@@ -1282,6 +1282,7 @@ class System:  # (SpectrumCalculator):
         times = np.arange(0, total_time + dt, dt)
         num_steps = len(times)
         states = np.zeros(num_steps, dtype=int)
+        measurement = np.zeros(num_steps)
 
         current_state = initial_state
         t = 0.0
@@ -1309,6 +1310,7 @@ class System:  # (SpectrumCalculator):
             # Record the current state at each sampling time until next transition
             while sample_idx < num_steps and times[sample_idx] <= next_transition_time:
                 states[sample_idx] = current_state
+                measurement[sample_idx] = self.measurement_op[current_state]
                 sample_idx += 1
 
             if next_transition_time >= total_time:
@@ -1323,6 +1325,7 @@ class System:  # (SpectrumCalculator):
         # Fill in the remaining times with the last state
         while sample_idx < num_steps:
             states[sample_idx] = current_state
+            measurement[sample_idx] = self.measurement_op[current_state]
             sample_idx += 1
 
-        return times, states
+        return times, states, measurement
