@@ -730,7 +730,12 @@ class FitSystem:
                 fs, s, serr = spec.calc_spec()
 
             # ----- Perform a new fit -----
-            parameter = add_gaussian_noise(self.result.params)
+            fitted_params = {}
+            for key, value in self.result.params.items():
+                fitted_params[key] = [value.value, value.min, value.max, value.vary]
+
+            # Calculate the standard deviation as 10% of the starting value
+            parameter = add_gaussian_noise(fitted_params)
 
             if system.single_photon_modus:
 
@@ -786,7 +791,7 @@ def add_gaussian_noise(parameter):
 
     for key, value in parameter.items():
         # Calculate the standard deviation as 10% of the starting value
-        starting_value = value.value
+        starting_value = value[0]
         std_dev = 0.1 * starting_value
 
         # Generate a random value from a Gaussian distribution centered at 0 with calculated std_dev
