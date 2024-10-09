@@ -712,7 +712,8 @@ class FitSystem:
                                                  background_photon_rate=background_photon_rate)
             else:
                 init_state = np.argmax(rho_steady)
-                t, trace = system.simulate_discrete_trace(total_time=measurement_time, sampling_rate=sampling_rate,
+                t, trace = system.simulate_discrete_trace(total_time=measurement_time,
+                                                          sampling_rate=self.measurement_spec.config.delta_t,
                                                           initial_state=init_state)
 
             # ----- Spectrum Calculation -----
