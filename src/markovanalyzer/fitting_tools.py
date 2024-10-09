@@ -730,7 +730,7 @@ class FitSystem:
                 fs, s, serr = spec.calc_spec()
 
             # ----- Perform a new fit -----
-            parameter = add_gaussian_noise(self.params_in)
+            parameter = add_gaussian_noise(self.result.params)
 
             if system.single_photon_modus:
 
@@ -776,6 +776,7 @@ def print_fit_statistics(all_results):
         std_dev = np.std(values)
         statistics.append([param, mean_value, std_dev])
 
+    print(statistics)
     return statistics
 
 
