@@ -786,7 +786,7 @@ def add_gaussian_noise(parameter):
 
     for key, value in parameter.items():
         # Calculate the standard deviation as 10% of the starting value
-        starting_value = value[0]
+        starting_value = value.value
         std_dev = 0.1 * starting_value
 
         # Generate a random value from a Gaussian distribution centered at 0 with calculated std_dev
