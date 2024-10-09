@@ -693,7 +693,8 @@ class FitSystem:
 
     def error_estimation_of_fit_parameter(self, measurement_time, n_simulations,
                                           singalsnap_backend='cpu', n_reps_for_single_photon_spectra=5,
-                                          show_realtime_plot=True):
+                                          show_realtime_plot=True,
+                                          added_noise_strength=0.0):
         rho_steady = np.real(self.system.rho_steady)
         rho_steady /= rho_steady.sum()
 
@@ -715,6 +716,8 @@ class FitSystem:
                 t, states, trace = system.simulate_discrete_trace(total_time=1.1*measurement_time,
                                                           sampling_rate=1/self.measurement_spec.config.delta_t,
                                                           initial_state=init_state)
+
+                trace += added_noise_strength * np.random.randn(len(trace))
 
             # ----- Spectrum Calculation -----
             if system.single_photon_modus:
