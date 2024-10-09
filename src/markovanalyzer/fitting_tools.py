@@ -690,6 +690,7 @@ class FitSystem:
             plt.show()
 
     def error_estimation_of_fit_parameter(self, measurement_time, n_simulations, sampling_rate=None):
+        rho_steady = self.rho_steady
         system = self.set_system(self.result.params)
         all_results = []
 
@@ -697,10 +698,11 @@ class FitSystem:
 
             # ----- data generation -----
             if system.single_photon_modus:
-                init_dist = system.rho_steady
+                print('shape rho_steady:', len(rho_steady))
+                init_dist = rho_steady[:len(rho_steady)//2]
                 system.simulate_photon_emissions(initial_dist=init_dist, total_time=measurement_time)
             else:
-                init_state = np.argmax(system.rho_steady)
+                init_state = np.argmax(rho_steady)
                 t, trace = system.simulate_discrete_trace(total_time=measurement_time, sampling_rate=sampling_rate,
                                                           initial_state=init_state)
 
