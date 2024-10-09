@@ -712,7 +712,7 @@ class FitSystem:
                                                  background_photon_rate=background_photon_rate)
             else:
                 init_state = np.argmax(rho_steady)
-                t, trace = system.simulate_discrete_trace(total_time=1.1*measurement_time,
+                t, states, trace = system.simulate_discrete_trace(total_time=1.1*measurement_time,
                                                           sampling_rate=1/self.measurement_spec.config.delta_t,
                                                           initial_state=init_state)
 
