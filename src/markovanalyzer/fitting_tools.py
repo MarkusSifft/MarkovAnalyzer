@@ -73,12 +73,13 @@ class SinglePhotonFit:
                       fit_orders=(1, 2, 3, 4)):
         self.system_fit = FitSystem(self.set_system)
 
-        result = self.system_fit.complete_fit(self.path_to_spectra, parameter, f_min=f_min, f_max_2=f_max_2, f_max_3=f_max_3,
-                                         f_max_4=f_max_4,
-                                         method='least_squares', xtol=xtol, ftol=ftol, show_plot=show_plot,
-                                         fit_modus=fit_modus, start_order=start_order,
-                                         fit_orders=fit_orders, beta_offset=False,
-                                         spec_obj_instead_of_path=self.spec_obj_instead_of_path)
+        result = self.system_fit.complete_fit(self.path_to_spectra, parameter, f_min=f_min, f_max_2=f_max_2,
+                                              f_max_3=f_max_3,
+                                              f_max_4=f_max_4,
+                                              method='least_squares', xtol=xtol, ftol=ftol, show_plot=show_plot,
+                                              fit_modus=fit_modus, start_order=start_order,
+                                              fit_orders=fit_orders, beta_offset=False,
+                                              spec_obj_instead_of_path=self.spec_obj_instead_of_path)
 
         return result
 
@@ -701,7 +702,7 @@ class FitSystem:
             # ----- data generation -----
             if system.single_photon_modus:
                 print('shape rho_steady:', len(rho_steady))
-                init_dist = rho_steady[:len(rho_steady)//2]
+                init_dist = rho_steady[:len(rho_steady) // 2]
                 system.simulate_photon_emissions(initial_dist=init_dist, total_time=measurement_time)
                 #print('photon emissiontimes:', system.photon_emission_times)
             else:
@@ -718,7 +719,7 @@ class FitSystem:
                                         f_max=self.measurement_spec.config.f_max, backend='cpu')
 
                 spec = SpectrumCalculator(config)
-                fs, s, serr = spec.calc_spec_poisson(n_reps=5)
+                fs, s, serr = spec.calc_spec_poisson(n_reps=1)  # TODO: Set to 5
             else:
                 config = SpectrumConfig(data=system.photon_emission_times, f_unit=self.measurement_spec.config.f_unit,
                                         spectrum_size=self.measurement_spec.config.spectrum_size, order_in='all',
@@ -734,12 +735,16 @@ class FitSystem:
 
             if system.single_photon_modus:
 
-                fit_obj = SinglePhotonFit(self.set_system, None, spec)
+                #fit_obj = SinglePhotonFit(self.set_system, None, spec)
 
-                result = fit_obj.start_fitting(parameter, f_min=self.f_min, xtol=self.xtol, ftol=self.ftol,
-                                               show_plot=self.show_plot,
-                                               fit_modus=self.fit_modus, start_order=self.start_order,
-                                               fit_orders=self.fit_orders)
+                result = self.complete_fit(None, parameter, f_min=self.f_min, f_max_2=self.f_max_2,
+                                           f_max_3=self.f_max_3,
+                                           f_max_4=self.f_max_4,
+                                           method='least_squares', xtol=self.xtol, ftol=self.ftol,
+                                           show_plot=self.show_plot,
+                                           fit_modus=self.fit_modus, start_order=self.start_order,
+                                           fit_orders=self.fit_orders, beta_offset=False,
+                                           spec_obj_instead_of_path=spec)
 
             else:
                 result = self.complete_fit(None, parameter,
@@ -775,6 +780,7 @@ def print_fit_statistics(all_results):
         statistics.append([param, mean_value, std_dev])
 
     return statistics
+
 
 def add_gaussian_noise(parameter):
     # Create a new dictionary to hold the updated values
