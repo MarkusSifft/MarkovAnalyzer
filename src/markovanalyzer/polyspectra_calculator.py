@@ -1085,7 +1085,7 @@ class System:  # (SpectrumCalculator):
             else:
                 self.simulated_observed_values.append(self.measurement_op[current_state])
 
-    def simulate_photon_emissions(self, initial_dist, total_time):
+    def simulate_photon_emissions(self, initial_dist, total_time, background_photon_rate=0.0):
         """
         Simulates photon emissions in a continuous-time Markov chain with state-dependent photon rates.
 
@@ -1141,6 +1141,17 @@ class System:  # (SpectrumCalculator):
                         photon_emission_times.append(current_time)
                     else:
                         break
+
+        # Simulate background photon emissions independent of the Markov model
+        if background_photon_rate > 0:
+            # Calculate expected number of background photons
+            expected_num_photons = background_photon_rate * total_time
+            # Sample the actual number of photons from a Poisson distribution
+            num_photons = np.random.poisson(expected_num_photons)
+            # Generate uniform random times for background photon emissions
+            background_photon_times = np.random.uniform(0, total_time, num_photons)
+            # Add background photon times to the photon emission times
+            photon_emission_times.extend(background_photon_times)
 
         # Sort the photon emission times
         photon_emission_times.sort()

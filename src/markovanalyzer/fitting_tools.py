@@ -703,7 +703,12 @@ class FitSystem:
             # ----- data generation -----
             if system.single_photon_modus:
                 init_dist = rho_steady[:len(rho_steady) // 2]
-                system.simulate_photon_emissions(initial_dist=init_dist, total_time=measurement_time)
+                background_photon_rate = 0.0
+                if 'background_photon_rate' in self.result.params.keys():
+                    background_photon_rate = self.result.params['background_photon_rate'].value
+
+                system.simulate_photon_emissions(initial_dist=init_dist, total_time=measurement_time,
+                                                 background_photon_rate=background_photon_rate)
             else:
                 init_state = np.argmax(rho_steady)
                 t, trace = system.simulate_discrete_trace(total_time=measurement_time, sampling_rate=sampling_rate,
@@ -758,8 +763,8 @@ class FitSystem:
 
             all_results.append(result)
 
-            # ----- Print cumulated results -----
-            print_fit_statistics(all_results)
+        # ----- Print cumulated results -----
+        print_fit_statistics(all_results)
 
 
 def print_fit_statistics(all_results):
