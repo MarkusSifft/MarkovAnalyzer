@@ -94,6 +94,7 @@ class FitSystem:
 
     def __init__(self, set_system, f_unit='Hz', huber_loss=False, huber_delta=1, enable_gpu=False,
                  fit_squared_errors=True):
+        self.system = None
         self.params_in = None
         self.result = None
         self.beta_offset = None
@@ -113,18 +114,18 @@ class FitSystem:
         self.f_unit = f_unit
         self.realtime_plot = True
 
-    def s1(self, params, system, omegas):
+    def s1(self, params, omegas):
 
-        spec = system.calculate_one_spectrum(omegas, order=1, bar=False)
+        spec = self.system.calculate_one_spectrum(omegas, order=1, bar=False)
 
         if 'background_photon_rate' in params:
             return np.real(spec) + params['background_photon_rate']
         else:
             return np.real(spec)
 
-    def s2(self, params, system, omegas):
+    def s2(self, params, omegas):
 
-        spec = system.calculate_one_spectrum(omegas, order=2, bar=False, beta_offset=self.beta_offset)
+        spec = self.system.calculate_one_spectrum(omegas, order=2, bar=False, beta_offset=self.beta_offset)
 
         if isinstance(params, np.ndarray):
             return np.real(spec) + params[-1]
@@ -135,34 +136,34 @@ class FitSystem:
         else:
             return np.real(spec)
 
-    def s3(self, params, system, omegas):
+    def s3(self, params, omegas):
 
-        spec = system.calculate_one_spectrum(omegas, order=3, bar=False)
+        spec = self.system.calculate_one_spectrum(omegas, order=3, bar=False)
 
         if 'background_photon_rate' in params:
             return np.real(spec) + 6 * params['background_photon_rate']
         else:
             return np.real(spec)
 
-    def s4(self, params, system, omegas):
+    def s4(self, params, omegas):
 
-        spec = system.calculate_one_spectrum(omegas, order=4, bar=False)
+        spec = self.system.calculate_one_spectrum(omegas, order=4, bar=False)
 
         if 'background_photon_rate' in params:
             return np.real(spec) + 24 * params['background_photon_rate']
         else:
             return np.real(spec)
 
-    def calc_spec(self, system, lmfit_params, order, fs=None):
+    def calc_spec(self, lmfit_params, order, fs=None):
 
         if order == 1:
-            out = self.s1(lmfit_params, system, fs)
+            out = self.s1(lmfit_params, fs)
         elif order == 2:
-            out = self.s2(lmfit_params, system, fs)
+            out = self.s2(lmfit_params, fs)
         elif order == 3:
-            out = self.s3(lmfit_params, system, fs)
+            out = self.s3(lmfit_params, fs)
         else:
-            out = self.s4(lmfit_params, system, fs)
+            out = self.s4(lmfit_params, fs)
 
         return out
 
@@ -174,7 +175,7 @@ class FitSystem:
 
     def objective(self, params):
 
-        system = self.set_system(params)
+        self.system = self.set_system(params)
 
         resid = []
         fit_list = {1: [], 2: [], 3: [], 4: []}
@@ -182,7 +183,7 @@ class FitSystem:
         for i, order in enumerate(self.fit_orders):
             # resid.append(((s_list[i] - calc_spec(params, order, f_list[i]))).flatten()/ np.abs(s_list[i]).max())
 
-            fit_list[order] = self.calc_spec(system, params, order, self.f_list[order])
+            fit_list[order] = self.calc_spec(params, order, self.f_list[order])
 
             if not self.fit_squared_errors:
                 # ---- residuals with abs (outliers are weighted less) -----
@@ -690,12 +691,11 @@ class FitSystem:
             plt.show()
 
     def error_estimation_of_fit_parameter(self, measurement_time, n_simulations, sampling_rate=None):
-        rho_steady = self.rho_steady
+        rho_steady = self.system.rho_steady
         system = self.set_system(self.result.params)
         all_results = []
 
         for i in tqdm_notebook(range(n_simulations)):
-
             # ----- data generation -----
             if system.single_photon_modus:
                 print('shape rho_steady:', len(rho_steady))
