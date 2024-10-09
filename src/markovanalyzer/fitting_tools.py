@@ -691,7 +691,9 @@ class FitSystem:
             plt.show()
 
     def error_estimation_of_fit_parameter(self, measurement_time, n_simulations, sampling_rate=None):
-        rho_steady = self.system.rho_steady
+        rho_steady = np.real(self.system.rho_steady)
+        rho_steady /= rho_steady.sum()
+
         system = self.set_system(self.result.params)
         all_results = []
 
