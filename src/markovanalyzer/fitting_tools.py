@@ -727,7 +727,7 @@ class FitSystem:
                 spec = SpectrumCalculator(config)
                 fs, s, serr = spec.calc_spec_poisson(n_reps=n_reps_for_single_photon_spectra)  # TODO: Set to 5
             else:
-                config = SpectrumConfig(data=system.photon_emission_times, f_unit=self.measurement_spec.config.f_unit,
+                config = SpectrumConfig(data=trace, f_unit=self.measurement_spec.config.f_unit,
                                         spectrum_size=self.measurement_spec.config.spectrum_size, order_in='all',
                                         m=self.measurement_spec.config.m, m_var=self.measurement_spec.config.m_var,
                                         m_stationarity=None,
