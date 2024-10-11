@@ -70,13 +70,13 @@ class SinglePhotonFit:
     def start_fitting(self, parameter, f_min=None, f_max_2=None, f_max_3=None, f_max_4=None,
                       xtol=1e-8, ftol=1e-8, show_plot=True,
                       fit_modus='resolution_based', start_order=1,
-                      fit_orders=(1, 2, 3, 4)):
+                      fit_orders=(1, 2, 3, 4), method='least_squares'):
         self.system_fit = FitSystem(self.set_system)
 
         result = self.system_fit.complete_fit(self.path_to_spectra, parameter, f_min=f_min, f_max_2=f_max_2,
                                               f_max_3=f_max_3,
                                               f_max_4=f_max_4,
-                                              method='least_squares', xtol=xtol, ftol=ftol, show_plot=show_plot,
+                                              method=method, xtol=xtol, ftol=ftol, show_plot=show_plot,
                                               fit_modus=fit_modus, start_order=start_order,
                                               fit_orders=fit_orders, beta_offset=False,
                                               spec_obj_instead_of_path=self.spec_obj_instead_of_path)
