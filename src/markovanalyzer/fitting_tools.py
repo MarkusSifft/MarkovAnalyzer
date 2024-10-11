@@ -210,6 +210,8 @@ class FitSystem:
         mini = Minimizer(self.objective, fit_params, iter_cb=self.iter_cb)
         if method == 'powell':
             out = mini.minimize(method=method, max_nfev=max_nfev)
+        elif method == 'lbfgsb':
+            out = mini.minimize(method=method, max_nfev=max_nfev)
         else:
             out = mini.minimize(method=method, xtol=xtol, ftol=ftol, max_nfev=max_nfev)
 
