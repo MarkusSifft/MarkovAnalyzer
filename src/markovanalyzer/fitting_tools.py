@@ -68,7 +68,7 @@ class SinglePhotonFit:
         self.system_fit = None
 
     def start_fitting(self, parameter, f_min=None, f_max_2=None, f_max_3=None, f_max_4=None,
-                      xtol=1e-8, ftol=1e-8, show_plot=True,
+                      xtol=1e-8, ftol=1e-8, gtol=1e-8, show_plot=True,
                       fit_modus='resolution_based', start_order=1,
                       fit_orders=(1, 2, 3, 4), method='least_squares'):
         self.system_fit = FitSystem(self.set_system)
@@ -76,7 +76,7 @@ class SinglePhotonFit:
         result = self.system_fit.complete_fit(self.path_to_spectra, parameter, f_min=f_min, f_max_2=f_max_2,
                                               f_max_3=f_max_3,
                                               f_max_4=f_max_4,
-                                              method=method, xtol=xtol, ftol=ftol, show_plot=show_plot,
+                                              method=method, xtol=xtol, ftol=ftol, gtol=gtol, show_plot=show_plot,
                                               fit_modus=fit_modus, start_order=start_order,
                                               fit_orders=fit_orders, beta_offset=False,
                                               spec_obj_instead_of_path=self.spec_obj_instead_of_path)
@@ -205,7 +205,7 @@ class FitSystem:
 
         return out
 
-    def start_minimizing(self, fit_params, method, max_nfev, xtol, ftol):
+    def start_minimizing(self, fit_params, method, max_nfev, xtol, ftol, gtol):
 
         mini = Minimizer(self.objective, fit_params, iter_cb=self.iter_cb)
         if method == 'powell':
@@ -213,7 +213,7 @@ class FitSystem:
         elif method == 'lbfgsb':
             out = mini.minimize(method=method, max_nfev=max_nfev)
         else:
-            out = mini.minimize(method=method, xtol=xtol, ftol=ftol, max_nfev=max_nfev)
+            out = mini.minimize(method=method, xtol=xtol, ftol=ftol, gtol=gtol, max_nfev=max_nfev)
 
         return out
 
@@ -236,7 +236,7 @@ class FitSystem:
                      method='least_squares',
                      fit_modus='order_based', start_order=1, beta_offset=True,
                      fit_orders=(1, 2, 3, 4), show_plot=True,
-                     xtol=1e-6, ftol=1e-6, max_nfev=500, general_weight=(2, 2, 1, 1), realtime_plot=True,
+                     xtol=1e-6, ftol=1e-6, gtol=1e-8, max_nfev=500, general_weight=(2, 2, 1, 1), realtime_plot=True,
                      spec_obj_instead_of_path=None):
 
         self.params_in = params_in
@@ -339,7 +339,7 @@ class FitSystem:
 
                     self.fit_orders = fit_orders[:i + 1]
 
-                    result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol)
+                    result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol, gtol)
 
                     for p in result.params:
                         fit_params[p].value = result.params[p].value
@@ -372,7 +372,7 @@ class FitSystem:
                         self.s_list[i] = self.s_list_original[i][::res, ::res]
                         self.err_list[i] = self.err_list_original[i][::res, ::res]
 
-                result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol)
+                result = self.start_minimizing(fit_params, method, max_nfev, xtol, ftol, gtol)
 
                 for p in result.params:
                     fit_params[p].value = result.params[p].value
