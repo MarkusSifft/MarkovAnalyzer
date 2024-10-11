@@ -703,7 +703,7 @@ class System:  # (SpectrumCalculator):
         all_values = filtered_dict_values + m_op.tolist()
 
         # Find the maximum value from the combined values
-        self.gamma_det = 1e10 * max(all_values)
+        self.gamma_det = 1e5 * max(all_values)
 
         for i in range(len(m_op)):
             # Find the replicated state corresponding to the original state
