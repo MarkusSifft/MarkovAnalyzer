@@ -71,7 +71,8 @@ class SinglePhotonFit:
     def start_fitting(self, parameter, f_min=None, f_max_2=None, f_max_3=None, f_max_4=None,
                       xtol=1e-8, ftol=1e-8, gtol=1e-8, show_plot=True,
                       fit_modus='resolution_based', start_order=1,
-                      fit_orders=(1, 2, 3, 4), method='least_squares', huber_loss=False, huber_delta=1):
+                      fit_orders=(1, 2, 3, 4), method='least_squares', huber_loss=False, huber_delta=1,
+                      remove_netzbrummen=False, netz_tolerance=2):
         self.system_fit = FitSystem(self.set_system, huber_loss=huber_loss, huber_delta=huber_delta)
 
         result = self.system_fit.complete_fit(self.path_to_spectra, parameter, f_min=f_min, f_max_2=f_max_2,
@@ -80,7 +81,8 @@ class SinglePhotonFit:
                                               method=method, xtol=xtol, ftol=ftol, gtol=gtol, show_plot=show_plot,
                                               fit_modus=fit_modus, start_order=start_order,
                                               fit_orders=fit_orders, beta_offset=False,
-                                              spec_obj_instead_of_path=self.spec_obj_instead_of_path)
+                                              spec_obj_instead_of_path=self.spec_obj_instead_of_path,
+                                              remove_netzbrummen=remove_netzbrummen, netz_tolerance=netz_tolerance)
 
         return result
 
@@ -233,12 +235,33 @@ class FitSystem:
             self.measurement_spec.S[i] = np.real(self.measurement_spec.S[i])[:max_ind, :max_ind]
             self.measurement_spec.S_err[i] = np.real(self.measurement_spec.S_err[i])[:max_ind, :max_ind]
 
+    def remove_frequencies(frequencies, signals, errors, f_to_remove, tolerance=2):
+        """
+        Removes frequencies in the list `f_to_remove` (and their corresponding signals/errors)
+        within a specified tolerance.
+
+        Parameters:
+        - frequencies: Array of frequency values.
+        - signals: Array of signal values corresponding to the frequencies.
+        - errors: Array of error values corresponding to the frequencies.
+        - f_to_remove: List or array of frequencies to remove.
+        - tolerance: Allowed deviation from the target frequencies (default: 2Hz).
+
+        Returns:
+        - Cleaned frequencies, signals, and errors.
+        """
+        mask = np.ones(len(frequencies), dtype=bool)
+        for f in f_to_remove:
+            mask &= ~np.isclose(frequencies, f, atol=tolerance)
+
+        return frequencies[mask], signals[mask], errors[mask]
+
     def complete_fit(self, path, params_in, f_min=None, f_max_2=None, f_max_3=None, f_max_4=None,
                      method='least_squares',
                      fit_modus='order_based', start_order=1, beta_offset=True,
                      fit_orders=(1, 2, 3, 4), show_plot=True,
                      xtol=1e-6, ftol=1e-6, gtol=1e-8, max_nfev=500, general_weight=(2, 2, 1, 1), realtime_plot=True,
-                     spec_obj_instead_of_path=None):
+                     spec_obj_instead_of_path=None, remove_netzbrummen=False, netz_tolerance=2):
 
         self.params_in = params_in
         self.realtime_plot = realtime_plot
@@ -306,6 +329,24 @@ class FitSystem:
                     index_mask = np.ix_(mask_f_min, mask_f_min)
                     self.s_list[i] = self.s_list[i][index_mask]
                     self.err_list[i] = self.err_list[i][index_mask]
+
+        if remove_netzbrummen:
+            # Define the frequencies to remove (multiples of 50Hz)
+            frequencies_to_remove = np.arange(50, np.max([f_max_2, f_max_3, f_max_4, 0]), 50)
+
+            for i in range(1, 5):
+                self.f_list[i] = self.measurement_spec.freq[i]
+                self.s_list[i] = np.real(self.measurement_spec.S[i])
+
+                if self.measurement_spec.S_err[i] is None:
+                    self.err_list[i] = 1e-6 * np.ones_like(self.s_list[i])
+                else:
+                    self.err_list[i] = np.real(self.measurement_spec.S_err[i])
+
+                # Remove the specified frequencies from the data
+                self.f_list[i], self.s_list[i], self.err_list[i] = self.remove_frequencies(
+                    self.f_list[i], self.s_list[i], self.err_list[i], frequencies_to_remove, tolerance=netz_tolerance
+                )
 
         fit_params = Parameters()
 
