@@ -235,7 +235,7 @@ class FitSystem:
             self.measurement_spec.S[i] = np.real(self.measurement_spec.S[i])[:max_ind, :max_ind]
             self.measurement_spec.S_err[i] = np.real(self.measurement_spec.S_err[i])[:max_ind, :max_ind]
 
-    def remove_frequencies(frequencies, signals, errors, f_to_remove, tolerance=2):
+    def remove_frequencies(self, frequencies, signals, errors, f_to_remove, tolerance=2):
         """
         Removes frequencies in the list `f_to_remove` (and their corresponding signals/errors)
         within a specified tolerance.
