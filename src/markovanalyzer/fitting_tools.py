@@ -335,15 +335,7 @@ class FitSystem:
             f_max_all_orders = np.max([np.max(f) for f in self.f_list.values() if f is not None])
             frequencies_to_remove = np.arange(50, f_max_all_orders, 50)
 
-            for i in range(1, 5):
-                self.f_list[i] = self.measurement_spec.freq[i]
-                self.s_list[i] = np.real(self.measurement_spec.S[i])
-
-                if self.measurement_spec.S_err[i] is None:
-                    self.err_list[i] = 1e-6 * np.ones_like(self.s_list[i])
-                else:
-                    self.err_list[i] = np.real(self.measurement_spec.S_err[i])
-
+            for i in range(2, 5):
                 # Remove the specified frequencies from the data
                 self.f_list[i], self.s_list[i], self.err_list[i] = self.remove_frequencies(
                     self.f_list[i], self.s_list[i], self.err_list[i], frequencies_to_remove, tolerance=netz_tolerance
