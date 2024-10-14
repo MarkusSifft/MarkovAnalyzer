@@ -235,7 +235,7 @@ class FitSystem:
             self.measurement_spec.S[i] = np.real(self.measurement_spec.S[i])[:max_ind, :max_ind]
             self.measurement_spec.S_err[i] = np.real(self.measurement_spec.S_err[i])[:max_ind, :max_ind]
 
-    def remove_frequencies(self, frequencies, signals, errors, f_to_remove, tolerance=2):
+    def remove_frequencies(self, i, frequencies, signals, errors, f_to_remove, tolerance=2):
         """
         Removes frequencies in the list `f_to_remove` (and their corresponding signals/errors)
         within a specified tolerance.
@@ -253,6 +253,9 @@ class FitSystem:
         mask = np.ones(len(frequencies), dtype=bool)
         for f in f_to_remove:
             mask &= ~np.isclose(frequencies, f, atol=tolerance)
+
+        if i > 2:
+            mask = np.ix_(mask, mask)
 
         return frequencies[mask], signals[mask], errors[mask]
 
@@ -337,7 +340,7 @@ class FitSystem:
 
             for i in range(2, 5):
                 # Remove the specified frequencies from the data
-                self.f_list[i], self.s_list[i], self.err_list[i] = self.remove_frequencies(
+                self.f_list[i], self.s_list[i], self.err_list[i] = self.remove_frequencies(i,
                     self.f_list[i], self.s_list[i], self.err_list[i], frequencies_to_remove, tolerance=netz_tolerance
                 )
 
