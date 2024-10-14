@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter
 from lmfit import Parameters, Minimizer
 import matplotlib.colors as colors
+from scipy.special import huber
 from signalsnap.spectrum_calculator import load_spec
 from matplotlib.colors import LinearSegmentedColormap
 from ipywidgets import widgets
@@ -70,8 +71,8 @@ class SinglePhotonFit:
     def start_fitting(self, parameter, f_min=None, f_max_2=None, f_max_3=None, f_max_4=None,
                       xtol=1e-8, ftol=1e-8, gtol=1e-8, show_plot=True,
                       fit_modus='resolution_based', start_order=1,
-                      fit_orders=(1, 2, 3, 4), method='least_squares'):
-        self.system_fit = FitSystem(self.set_system)
+                      fit_orders=(1, 2, 3, 4), method='least_squares', huber_loss=False, huber_delta=1):
+        self.system_fit = FitSystem(self.set_system, huber_loss=huber_loss, huber_delta=huber_delta)
 
         result = self.system_fit.complete_fit(self.path_to_spectra, parameter, f_min=f_min, f_max_2=f_max_2,
                                               f_max_3=f_max_3,
