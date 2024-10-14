@@ -332,7 +332,8 @@ class FitSystem:
 
         if remove_netzbrummen:
             # Define the frequencies to remove (multiples of 50Hz)
-            frequencies_to_remove = np.arange(50, np.max([self.f_list[2].flatten(), self.f_list[3].flatten(), self.f_list[4]].flatten()), 50)
+            f_max_all_orders = np.max([np.max(f) for f in self.f_list.values() if f is not None])
+            frequencies_to_remove = np.arange(50, f_max_all_orders, 50)
 
             for i in range(1, 5):
                 self.f_list[i] = self.measurement_spec.freq[i]
