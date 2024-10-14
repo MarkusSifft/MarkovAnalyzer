@@ -255,9 +255,10 @@ class FitSystem:
             mask &= ~np.isclose(frequencies, f, atol=tolerance)
 
         if i > 2:
-            mask = np.ix_(mask, mask)
-
-        return frequencies[mask], signals[mask], errors[mask]
+            mask3D = np.ix_(mask, mask)
+            return frequencies[mask], signals[mask3D], errors[mask3D]
+        else:
+            return frequencies[mask], signals[mask], errors[mask]
 
     def complete_fit(self, path, params_in, f_min=None, f_max_2=None, f_max_3=None, f_max_4=None,
                      method='least_squares',
