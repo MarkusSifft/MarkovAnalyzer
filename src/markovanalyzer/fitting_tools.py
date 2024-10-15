@@ -746,6 +746,7 @@ class FitSystem:
             # ----- data generation -----
             if system.single_photon_modus:
                 init_dist = rho_steady[:len(rho_steady) // 2]
+                init_dist /= np.sum(init_dist)
                 background_photon_rate = 0.0
                 if 'background_photon_rate' in self.result.params.keys():
                     background_photon_rate = self.result.params['background_photon_rate'].value
