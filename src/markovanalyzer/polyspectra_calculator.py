@@ -301,6 +301,7 @@ def rates_to_matrix(rates):
         states.add(to_state)
 
     states = sorted(list(states))
+    print('unique states', states)
     n = len(states)
 
     # Initialize a zero matrix
@@ -309,6 +310,7 @@ def rates_to_matrix(rates):
     # Fill the transition rates
     for key, rate in rates.items():
         from_state, to_state = key.split("->")
+        print('from_state', from_state, ' to_state', to_state)
         i, j = states.index(from_state), states.index(to_state)
         matrix[i, j] = rate
 
