@@ -813,7 +813,7 @@ class System:  # (SpectrumCalculator):
         self.rho_steady = rho_steady
         return rho_steady
 
-    def calculate_WTD(self, t, down_states, up_states, verbose=True):
+    def calculate_WTD(self, t, down_states, up_states, order=1, verbose=True):
 
         temp1 = self.transtion_matrix - np.diag(np.diag(self.transtion_matrix))
         jump_op_in = np.zeros_like(temp1)
@@ -824,8 +824,14 @@ class System:  # (SpectrumCalculator):
         self.jump_op_in = jump_op_in
         self.jump_op_out = jump_op_out
 
-        wtd_in = np.zeros_like(t)
-        wtd_out = np.zeros_like(t)
+        if order == 1:
+            wtd_in = np.zeros_like(t)
+            wtd_out = np.zeros_like(t)
+
+        if order == 2:
+            n = t.shape[0]
+            wtd_in = np.zeros((n,n))
+            wtd_out = np.zeros_like((n,n))
 
         self.eigvals, self.eigvecs = eig(self.transtion_matrix.astype(dtype=np.complex128))
         self.eigvecs_inv = inv(self.eigvecs)
@@ -846,12 +852,22 @@ class System:  # (SpectrumCalculator):
         else:
             iterator = range(t.shape[0])
 
-        for i in iterator:
-            self.G = expm((self.transtion_matrix - jump_op_in - jump_op_out) * t[i])
-            # self.G = self.eigvecs @ diagonal @ self.eigvecs_inv
+        if order == 1:
+            for i in iterator:
+                self.G = expm((self.transtion_matrix - jump_op_in - jump_op_out) * t[i])
+                # self.G = self.eigvecs @ diagonal @ self.eigvecs_inv
 
-            wtd_in[i] = np.sum(jump_op_out @ self.G @ jump_op_in @ rho_steady) / np.sum(jump_op_in @ rho_steady)
-            wtd_out[i] = np.sum(jump_op_in @ self.G @ jump_op_out @ rho_steady) / np.sum(jump_op_out @ rho_steady)
+                wtd_in[i] = np.sum(jump_op_out @ self.G @ jump_op_in @ rho_steady) / np.sum(jump_op_in @ rho_steady)
+                wtd_out[i] = np.sum(jump_op_in @ self.G @ jump_op_out @ rho_steady) / np.sum(jump_op_out @ rho_steady)
+
+        elif order == 2:
+            for i in iterator:
+                for j in iterator:
+                    self.G_1 = expm((self.transtion_matrix - jump_op_in - jump_op_out) * t[i])
+                    self.G_2 = expm((self.transtion_matrix - jump_op_in - jump_op_out) * t[j])
+
+                    wtd_in[i, j] = np.sum(jump_op_in @ self.G_2 @ jump_op_out @ self.G_1 @ jump_op_in @ rho_steady) / np.sum(jump_op_in @ rho_steady)
+                    wtd_out[i, j] = np.sum(jump_op_out @ self.G_2 @ jump_op_in @ self.G_1 @ jump_op_out @ rho_steady) / np.sum(jump_op_out @ rho_steady)
 
         return wtd_in, wtd_out
 
