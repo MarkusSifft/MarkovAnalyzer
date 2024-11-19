@@ -831,7 +831,7 @@ class System:  # (SpectrumCalculator):
         if order == 2:
             n = t.shape[0]
             wtd_in = np.zeros((n,n))
-            wtd_out = np.zeros_like((n,n))
+            wtd_out = np.zeros((n,n))
 
         self.eigvals, self.eigvecs = eig(self.transtion_matrix.astype(dtype=np.complex128))
         self.eigvecs_inv = inv(self.eigvecs)
